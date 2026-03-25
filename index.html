@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neary — The Neighbour-Relay for First-Time Delivery</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='72' height='72' rx='16' fill='%232E9FAE'/%3E%3Cpolygon points='36,14 56,25 36,36 16,25' fill='none' stroke='white' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cpolygon points='16,25 16,47 36,58 36,36' fill='none' stroke='white' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cpolygon points='56,25 56,47 36,58 36,36' fill='none' stroke='white' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cline x1='36' y1='36' x2='36' y2='58' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #3EBA6E;
+      --green-light: #56D485;
+      --green-dim: rgba(62, 186, 110, 0.12);
+      --navy: #0E1C2B;
+      --navy-mid: #152435;
+      --navy-light: #1E3148;
+      --navy-card: #18293D;
+      --white: #F4F8F5;
+      --muted: #7A9BAB;
+      --border: rgba(62, 186, 110, 0.18);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5vw;
+      height: 72px;
+      background: rgba(14, 28, 43, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 1.55rem;
+      letter-spacing: -0.03em;
+      color: var(--white);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--green); }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      background: var(--green);
+      color: var(--navy) !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 700 !important;
+      font-size: 0.88rem !important;
+    }
+    .nav-cta:hover { background: var(--green-light) !important; color: var(--navy) !important; }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 8rem 5vw 4rem;
+      overflow: hidden;
+    }
+
+    /* animated grid bg */
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(62,186,110,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(62,186,110,0.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridFloat 20s ease-in-out infinite;
+    }
+    @keyframes gridFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(62,186,110,0.15) 0%, transparent 70%);
+      top: -150px;
+      right: -100px;
+      pointer-events: none;
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 820px; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green-dim);
+      border: 1px solid var(--border);
+      color: var(--green);
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      margin-bottom: 1.75rem;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    h1 em {
+      font-style: normal;
+      color: var(--green);
+      position: relative;
+    }
+
+    .hero-sub {
+      font-size: 1.2rem;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--navy);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.9rem 2rem;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.25s;
+      border: none;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .btn-primary:hover {
+      background: var(--green-light);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(62,186,110,0.35);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.9rem 2rem;
+      border-radius: 10px;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.25s;
+      display: inline-block;
+    }
+    .btn-outline:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      margin-top: 4rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+      animation: fadeUp 0.6s 0.4s ease both;
+      flex-wrap: wrap;
+    }
+    .hero-stat-value {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--green);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .hero-stat-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      font-weight: 500;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTIONS ── */
+    section { position: relative; z-index: 1; }
+
+    .section-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 7rem 5vw;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    h2 span { color: var(--green); }
+
+    .section-desc {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 600px;
+      line-height: 1.75;
+    }
+
+    /* ── PROBLEM STRIP ── */
+    .problem-strip {
+      background: var(--navy-mid);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .problem-strip .section-inner {
+      padding: 5rem 5vw;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+    .problem-quote {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+    .problem-quote em {
+      font-style: normal;
+      color: var(--green);
+    }
+    .stat-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .stat-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      transition: border-color 0.3s;
+    }
+    .stat-card:hover { border-color: var(--green); }
+    .stat-card-num {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--green);
+      white-space: nowrap;
+      letter-spacing: -0.03em;
+    }
+    .stat-card-text {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .stat-card-text strong { color: var(--white); display: block; font-size: 0.95rem; }
+
+    /* ── HOW IT WORKS ── */
+    .how-section { background: var(--navy); }
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      margin-top: 4rem;
+      position: relative;
+    }
+    .flow-steps::before {
+      content: '';
+      position: absolute;
+      top: 42px;
+      left: 8%;
+      right: 8%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+    }
+    .flow-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1.25rem;
+      padding: 0 1rem;
+      position: relative;
+    }
+    .flow-icon {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: var(--navy-card);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s;
+    }
+    .flow-step:hover .flow-icon {
+      border-color: var(--green);
+      background: var(--green-dim);
+      transform: scale(1.08);
+    }
+    .flow-step-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--green);
+    }
+    .flow-step-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+    .flow-step-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .flow-fee {
+      background: var(--green-dim);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--green);
+    }
+
+    /* ── AUDIENCE TABS ── */
+    .audience-section {
+      background: var(--navy-mid);
+      border-top: 1px solid var(--border);
+    }
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      background: var(--navy);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 3.5rem;
+      width: fit-content;
+    }
+    .tab-btn {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.6rem 1.5rem;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .tab-btn.active {
+      background: var(--green);
+      color: var(--navy);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
+
+    .tab-visual {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .tab-visual-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .mock-row {
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .mock-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: var(--green-dim);
+      flex-shrink: 0;
+    }
+    .mock-name { font-weight: 600; font-size: 0.9rem; }
+    .mock-sub { font-size: 0.78rem; color: var(--muted); }
+    .mock-badge {
+      background: var(--green-dim);
+      border: 1px solid var(--border);
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .mock-badge.warn { background: rgba(255,180,0,0.1); border-color: rgba(255,180,0,0.25); color: #FFC107; }
+
+    .benefit-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+    .benefit-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .benefit-list li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.1em;
+    }
+    .benefit-list li strong { color: var(--white); }
+    .benefit-list li span { color: var(--muted); }
+
+    /* ── FINANCIAL FLOW ── */
+    .financial-section { background: var(--navy); }
+    .fee-flow {
+      margin-top: 3.5rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+    .fee-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      position: relative;
+      transition: all 0.3s;
+    }
+    .fee-card:hover {
+      border-color: var(--green);
+      transform: translateY(-4px);
+    }
+    .fee-step-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--green);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .fee-card h4 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+    .fee-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .fee-amount {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--green);
+      margin-top: 1.25rem;
+      letter-spacing: -0.03em;
+    }
+    .fee-amount sub {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── GREEN IMPACT ── */
+    .green-section {
+      background: linear-gradient(135deg, #0B1F12 0%, #0E1C2B 60%);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .green-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+    .impact-items {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .impact-item {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+    .impact-icon {
+      font-size: 1.75rem;
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      background: var(--green-dim);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .impact-item h4 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.3rem;
+    }
+    .impact-item p { font-size: 0.88rem; color: var(--muted); }
+
+    .eco-counter {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3rem;
+      text-align: center;
+    }
+    .eco-big {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 5rem;
+      font-weight: 800;
+      color: var(--green);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .eco-unit { font-size: 1rem; color: var(--muted); margin-top: 0.5rem; }
+    .eco-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+      margin: 2rem auto;
+    }
+
+    /* ── TRUST & SECURITY ── */
+    .trust-section { background: var(--navy-mid); }
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+    .trust-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      transition: border-color 0.3s;
+    }
+    .trust-card:hover { border-color: var(--green); }
+    .trust-card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 1.25rem;
+    }
+    .trust-card h4 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .trust-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── KEEPER CTA ── */
+    .keeper-section {
+      background: var(--navy);
+      border-top: 1px solid var(--border);
+    }
+    .keeper-cta-box {
+      background: linear-gradient(135deg, rgba(62,186,110,0.12) 0%, transparent 60%);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .keeper-cta-box::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      right: -80px;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(62,186,110,0.12) 0%, transparent 70%);
+    }
+    .keeper-cta-box h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); margin-bottom: 1rem; }
+    .keeper-cta-box p { color: var(--muted); max-width: 540px; margin: 0 auto 2.5rem; }
+    .keeper-steps {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .keeper-step {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .keeper-step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--green);
+      color: var(--navy);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      flex-shrink: 0;
+    }
+
+    /* ── WAITLIST FORM ── */
+    .waitlist-section {
+      background: var(--navy-mid);
+      border-top: 1px solid var(--border);
+    }
+    .waitlist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+    input, select, textarea {
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+    input::placeholder { color: var(--muted); }
+    select { cursor: pointer; }
+    select option { background: var(--navy); }
+    .form-submit {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #080F18;
+      border-top: 1px solid var(--border);
+      padding: 4rem 5vw 2rem;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+    .footer-brand {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+    }
+    .footer-brand span { color: var(--green); }
+    .footer-tagline { font-size: 0.88rem; color: var(--muted); line-height: 1.65; max-width: 280px; }
+    .footer-col h5 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      margin-bottom: 1rem;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+    .footer-col a { font-size: 0.88rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-col a:hover { color: var(--green); }
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-bottom p { font-size: 0.82rem; color: var(--muted); }
+    .eco-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ── ROLE CARDS & MULTI-STEP FORM ── */
+    .form-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+    }
+    .role-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-bottom: 1.75rem;
+    }
+    .role-card {
+      background: var(--navy);
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: all 0.22s;
+      position: relative;
+    }
+    .role-card:hover {
+      border-color: rgba(62,186,110,0.4);
+      background: rgba(62,186,110,0.04);
+    }
+    .role-card.selected {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+    .role-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .role-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--white);
+      margin-bottom: 0.2rem;
+    }
+    .role-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+    .role-check {
+      margin-left: auto;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--green);
+      color: var(--navy);
+      font-weight: 700;
+      font-size: 0.82rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .role-card.selected .role-check { display: flex; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .problem-strip .section-inner,
+      .green-grid,
+      .tab-panel.active,
+      .waitlist-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .flow-steps { grid-template-columns: 1fr 1fr; gap: 2rem; }
+      .flow-steps::before { display: none; }
+      .fee-flow { grid-template-columns: 1fr 1fr; }
+      .trust-grid { grid-template-columns: 1fr 1fr; }
+      .footer-top { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+      .keeper-cta-box { padding: 3rem 1.5rem; }
+    }
+    @media (max-width: 600px) {
+      .fee-flow, .trust-grid, .hero-stats { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr; }
+      .flow-steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="nav-logo" style="display:flex;align-items:center;gap:0.55rem;text-decoration:none;">
+    <svg width="38" height="38" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="80" height="80" rx="18" fill="#3EBA6E"/>
+      <!-- TOP face — white diamond, stroke in brand-green creates clean gaps -->
+      <polygon points="40,13 65,27 40,41 15,27" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
+      <!-- LEFT face -->
+      <polygon points="15,27 15,53 40,67 40,41" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
+      <!-- RIGHT face -->
+      <polygon points="65,27 65,53 40,67 40,41" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
+    </svg>
+    Near<span>y</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#couriers">Couriers</a></li>
+    <li><a href="#merchants">Merchants</a></li>
+    <li><a href="#keepers">Become a Keeper</a></li>
+    <li><a href="#contact" class="nav-cta">Join waitlist →</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div style="margin-bottom:1.5rem;animation:fadeUp 0.5s ease both;">
+      <svg width="60" height="60" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" rx="18" fill="#2E9FAE"/>
+        <polygon points="36,14 56,25 36,36 16,25" fill="none" stroke="white" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polygon points="16,25 16,47 36,58 36,36" fill="none" stroke="white" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polygon points="56,25 56,47 36,58 36,36" fill="none" stroke="white" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <line x1="36" y1="36" x2="36" y2="58" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="16" y1="25" x2="36" y2="36" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="56" y1="25" x2="36" y2="36" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="hero-badge">UK B2B LogTech · Pre-Pilot · London</div>
+    <h1>Transforming<br/>the <em>Last Mile</em> into<br/>the Last Metre.</h1>
+    <p class="hero-sub">Neary turns trusted neighbours into official delivery hubs — eliminating failed deliveries for couriers, reducing costs for merchants, and turning idle homes into earning assets.</p>
+    <div class="hero-actions">
+      <a href="#contact" class="btn-primary">Join the Waitlist</a>
+      <a href="#how" class="btn-outline">See how it works ↓</a>
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="hero-stat-value">£1.6B</div>
+        <div class="hero-stat-label">annual cost of failed deliveries<br/>to UK couriers</div>
+      </div>
+      <div>
+        <div class="hero-stat-value">99%</div>
+        <div class="hero-stat-label">first-time delivery success<br/>using neighbour relay model</div>
+      </div>
+      <div>
+        <div class="hero-stat-value">−35%</div>
+        <div class="hero-stat-label">CO₂ reduction per parcel<br/>vs standard redelivery</div>
+      </div>
+      <div>
+        <div class="hero-stat-value">4.8M</div>
+        <div class="hero-stat-label">UK households affected by<br/>parcel theft annually</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROBLEM ── -->
+<section class="problem-strip">
+  <div class="section-inner">
+    <div class="reveal">
+      <p class="section-label">// The Crisis</p>
+      <p class="problem-quote">"Every failed delivery costs a courier <em>£3–£5</em> in fuel, driver time &amp; customer service.<br/>Neary's <em>Success Fee</em> model turns that loss into a guaranteed first-time delivery."</p>
+    </div>
+    <div class="stat-cards reveal">
+      <div class="stat-card">
+        <div class="stat-card-num">£666M</div>
+        <div class="stat-card-text">
+          <strong>Parcel theft in the UK (2025/26)</strong>
+          Affecting 4.83M households — a 31% year-on-year increase.
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-num">8–10%</div>
+        <div class="stat-card-text">
+          <strong>First-attempt failure rate</strong>
+          Every failed parcel triggers 2.3 customer service interactions.
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-num">£147</div>
+        <div class="stat-card-text">
+          <strong>Average replacement cost per lost parcel</strong>
+          Retailers absorb £1.2B of the total £1.6B industry loss.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="how-section" id="how">
+  <div class="section-inner">
+    <div class="reveal">
+      <p class="section-label">// The Neary Flow</p>
+      <h2>Simple for everyone.<br/><span>Transformative for logistics.</span></h2>
+      <p class="section-desc">Five steps turn a failed delivery into a guaranteed success — no lockers, no vans, no infrastructure investment.</p>
+    </div>
+    <div class="flow-steps reveal">
+      <div class="flow-step">
+        <div class="flow-icon">🚚</div>
+        <div class="flow-step-label">Step 01</div>
+        <div class="flow-step-title">Courier Arrives</div>
+        <div class="flow-step-desc">Driver reaches the street. Shopper isn't home. Standard failure point.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">📲</div>
+        <div class="flow-step-label">Step 02</div>
+        <div class="flow-step-title">Neary Notifies</div>
+        <div class="flow-step-desc">App instantly shows a Verified Keeper 50m away, confirmed home and available.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">🏠</div>
+        <div class="flow-step-label">Step 03</div>
+        <div class="flow-step-title">Safe Drop</div>
+        <div class="flow-step-desc">Driver drops the parcel. Keeper scans the barcode. Photo taken. Shopper notified.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">🔐</div>
+        <div class="flow-step-label">Step 04</div>
+        <div class="flow-step-title">QR Handover</div>
+        <div class="flow-step-desc">Shopper collects using their unique Neary QR. Keeper scans to confirm. Transaction sealed.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">💳</div>
+        <div class="flow-step-label">Step 05</div>
+        <div class="flow-step-title">Fee Released</div>
+        <div class="flow-step-desc">The courier pays Neary a Success Fee. Neary takes a service fee and passes the remainder to the Keeper. Zero redelivery cost.</div>
+        <div class="flow-fee">Success Fee / parcel</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOR EACH AUDIENCE ── -->
+<section class="audience-section" id="couriers">
+  <div class="section-inner">
+    <div class="reveal">
+      <p class="section-label">// Who Neary Serves</p>
+      <h2>Built for the whole<br/><span>delivery ecosystem.</span></h2>
+    </div>
+    <div class="reveal">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="showTab('couriers-tab', this)">🚛 Couriers</button>
+        <button class="tab-btn" onclick="showTab('merchants-tab', this)">🛍️ Merchants</button>
+        <button class="tab-btn" onclick="showTab('keepers-tab', this)">🏡 Keepers</button>
+      </div>
+    </div>
+
+    <!-- COURIERS -->
+    <div class="tab-panel active" id="couriers-tab">
+      <div>
+        <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1.9rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:1.25rem;line-height:1.15;">Eliminate 100% of<br/>failed residential deliveries.</h3>
+        <p style="color:var(--muted);margin-bottom:2rem;line-height:1.75;">Neary integrates with your existing handheld scanners and routing software. Zero workflow disruption. Maximum cost savings.</p>
+        <ul class="benefit-list">
+          <li><div><strong>Carrier-Agnostic Network</strong><span> — Neary works with Evri, DPD, Royal Mail, Yodel and more. One integration, every carrier.</span></div></li>
+          <li><div><strong>In-Flight Diversion API</strong><span> — Redirect parcels mid-route to the nearest Keeper before the driver even arrives.</span></div></li>
+          <li><div><strong>Significant cost savings per parcel</strong><span> — Couriers save on the full £3–£5 redelivery cost. ROI is immediate and measurable from day one.</span></div></li>
+          <li><div><strong>No locker investment</strong><span> — We own the supply of trusted neighbours. You own the savings.</span></div></li>
+          <li><div><strong>Webhook-ready alerts</strong><span> — Keepers are notified before the van arrives — no missed drops.</span></div></li>
+        </ul>
+        <div style="margin-top:2rem;">
+          <a href="#contact" class="btn-primary">Request a Pilot Trial →</a>
+        </div>
+      </div>
+      <div class="tab-visual">
+        <div class="tab-visual-title">// Live Keeper Availability — E1, London</div>
+        <div class="mock-row">
+          <div class="mock-avatar">👩</div>
+          <div style="flex:1;"><div class="mock-name">Sarah M. · 32m away</div><div class="mock-sub">4.9★ Gold Keeper · Available until 21:00</div></div>
+          <div class="mock-badge">✓ Active</div>
+        </div>
+        <div class="mock-row">
+          <div class="mock-avatar">👨</div>
+          <div style="flex:1;"><div class="mock-name">James T. · 48m away</div><div class="mock-sub">4.7★ Standard · Available until 18:30</div></div>
+          <div class="mock-badge">✓ Active</div>
+        </div>
+        <div class="mock-row" style="opacity:0.5;">
+          <div class="mock-avatar">🧑</div>
+          <div style="flex:1;"><div class="mock-name">Priya K. · 54m away</div><div class="mock-sub">4.8★ Gold Keeper</div></div>
+          <div class="mock-badge warn">⏸ Away</div>
+        </div>
+        <div style="background:var(--navy);border-radius:10px;padding:1rem 1.25rem;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--green);margin-top:0.5rem;">
+          DIVERT → SARAH M. · Confidence: 98.4%<br/>
+          <span style="color:var(--muted);">Est. delivery window: 14:32 — 14:38</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MERCHANTS -->
+    <div class="tab-panel" id="merchants-tab">
+      <div>
+        <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1.9rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:1.25rem;line-height:1.15;">Lower cart abandonment.<br/>Happier customers.</h3>
+        <p style="color:var(--muted);margin-bottom:2rem;line-height:1.75;">Add the Neary widget to your Shopify, WooCommerce or Magento store in minutes. Your customers choose a trusted neighbour at checkout — for free.</p>
+        <ul class="benefit-list">
+          <li><div><strong>Checkout widget integration</strong><span> — Lightweight API plugin. Customers enter their postcode and select a nearby Keeper on a live map.</span></div></li>
+          <li><div><strong>Zero cost to the shopper</strong><span> — The courier pays Neary. Your customer gets free, guaranteed delivery.</span></div></li>
+          <li><div><strong>Reduce refund & reorder costs</strong><span> — Every lost or stolen parcel is a merchant problem. Neary eliminates them.</span></div></li>
+          <li><div><strong>Real-time delivery confirmation</strong><span> — Live scan events piped back to your order management system via webhook.</span></div></li>
+          <li><div><strong>Sustainability badge</strong><span> — Display your reduced delivery carbon footprint at checkout.</span></div></li>
+        </ul>
+        <div style="margin-top:2rem;">
+          <a href="#contact" class="btn-primary">Request Integration Docs →</a>
+        </div>
+      </div>
+      <div class="tab-visual" id="merchants">
+        <div class="tab-visual-title">// Neary Checkout Widget — Preview</div>
+        <div style="background:var(--navy);border-radius:10px;padding:1.25rem;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem;">🚚 Select your delivery method</div>
+          <div style="background:var(--navy-card);border:2px solid var(--green);border-radius:10px;padding:1rem;margin-bottom:0.5rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:600;font-size:0.9rem;">🟢 Neary Neighbour Relay</div>
+                <div style="font-size:0.78rem;color:var(--muted);">Sarah (2 min walk) · Available today</div>
+              </div>
+              <div style="color:var(--green);font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">FREE</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:1rem;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:0.88rem;color:var(--muted);">🏠 Standard Home Delivery</div>
+            <div style="font-size:0.88rem;color:var(--muted);">£0 – may redeliver</div>
+          </div>
+          <div style="margin-top:1rem;text-align:center;">
+            <div style="display:inline-block;background:var(--green);color:var(--navy);padding:0.65rem 2rem;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:0.9rem;">Confirm — Deliver to Sarah →</div>
+          </div>
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.75rem;">Powered by Neary · GDPR Compliant · Insured up to £200</div>
+      </div>
+    </div>
+
+    <!-- KEEPERS -->
+    <div class="tab-panel" id="keepers-tab">
+      <div>
+        <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1.9rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:1.25rem;line-height:1.15;">Earn from home.<br/>Help your neighbours.</h3>
+        <p style="color:var(--muted);margin-bottom:2rem;line-height:1.75;">If you're at home during the day — remote worker, retiree, parent — your front door is already an asset. Neary pays you for it.</p>
+        <ul class="benefit-list">
+          <li><div><strong>Earn per parcel you hold</strong><span> — plus 100% of tips from shoppers. The more active you are, the more you earn.</span></div></li>
+          <li><div><strong>100% flexible</strong><span> — You set your own hours. Toggle "Active" in the app whenever you're home.</span></div></li>
+          <li><div><strong>Automatic insurance cover</strong><span> — Every parcel in your care is insured up to £200 at no cost to you.</span></div></li>
+          <li><div><strong>Instant payouts</strong><span> — Earnings land in your Neary Wallet instantly. Withdraw anytime (min £10) via Stripe.</span></div></li>
+          <li><div><strong>Founder Keeper benefits</strong><span> — First 500 Keepers get higher commission for 6 months + a Verified Gold badge.</span></div></li>
+        </ul>
+        <div style="margin-top:2rem;">
+          <a href="#contact" class="btn-primary">Apply to Become a Keeper →</a>
+        </div>
+      </div>
+      <div class="tab-visual">
+        <div class="tab-visual-title">// Keeper Dashboard</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:1rem;">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);">THIS WEEK</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:2rem;font-weight:800;color:var(--green);">This week</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);">PARCELS HELD</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:2rem;font-weight:800;">18</div>
+          </div>
+        </div>
+        <div class="mock-row">
+          <div class="mock-avatar">📦</div>
+          <div style="flex:1;"><div class="mock-name">DPD Parcel · John S.</div><div class="mock-sub">Arrived 13:42 · Collected 16:05</div></div>
+          <div style="color:var(--green);font-family:'DM Mono',monospace;font-size:0.82rem;">+ Earned</div>
+        </div>
+        <div class="mock-row">
+          <div class="mock-avatar">📦</div>
+          <div style="flex:1;"><div class="mock-name">Evri Parcel · Maria L.</div><div class="mock-sub">Arrived 11:18 · Collected 14:30</div></div>
+          <div style="color:var(--green);font-family:'DM Mono',monospace;font-size:0.82rem;">+ Earned</div>
+        </div>
+        <div style="background:rgba(62,186,110,0.08);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;margin-top:0.5rem;">
+          <div style="font-size:0.78rem;color:var(--muted);">Status</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;color:var(--green);">🟢 Active — You're visible to couriers</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── GREEN IMPACT ── -->
+<section class="green-section">
+  <div class="section-inner">
+    <div class="green-grid">
+      <div class="reveal">
+        <p class="section-label">// Environmental Impact</p>
+        <h2>The greenest<br/><span>logistics play in the UK.</span></h2>
+        <p class="section-desc">Every Neary relay removes 2–3 van journeys from London's roads. We're not just solving logistics — we're cleaning up the last mile.</p>
+        <div class="impact-items">
+          <div class="impact-item">
+            <div class="impact-icon">🌿</div>
+            <div>
+              <h4>Zero hardware carbon footprint</h4>
+              <p>We don't manufacture or install lockers. The neighbour's home is the infrastructure.</p>
+            </div>
+          </div>
+          <div class="impact-item">
+            <div class="impact-icon">🚌</div>
+            <div>
+              <h4>−35% CO₂ per parcel</h4>
+              <p>Eliminating redelivery vans reduces emissions by up to 35% per order — validated against ADEME data from Pickme France.</p>
+            </div>
+          </div>
+          <div class="impact-item">
+            <div class="impact-icon">🏙️</div>
+            <div>
+              <h4>Fewer vans on London streets</h4>
+              <p>Every 100 Neary deliveries removes an estimated 40 additional van journeys from congested London postcodes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="eco-counter reveal">
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1.5rem;">Projected annual CO₂ reduction</div>
+        <div class="eco-big">−35%</div>
+        <div class="eco-unit">per parcel vs standard redelivery</div>
+        <div class="eco-divider"></div>
+        <div class="eco-big" style="font-size:3.5rem;">40+</div>
+        <div class="eco-unit">fewer van journeys per 100 Neary deliveries</div>
+        <div class="eco-divider"></div>
+        <div style="font-size:0.82rem;color:var(--muted);">Sources: ADEME, Pickme France operational data, IMRG 2025</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRUST & SECURITY ── -->
+<section class="trust-section">
+  <div class="section-inner">
+    <div class="reveal">
+      <p class="section-label">// Security & Trust</p>
+      <h2>A network built on<br/><span>verified trust.</span></h2>
+      <p class="section-desc">Every Keeper is verified. Every parcel is insured. Every transaction is auditable. Neary doesn't rely on goodwill — it engineers it.</p>
+    </div>
+    <div class="trust-grid reveal">
+      <div class="trust-card">
+        <div class="trust-card-icon">🪪</div>
+        <h4>Tiered ID Verification</h4>
+        <p>Level 1: Photo ID + proof of address for standard parcels (&lt;£50). Level 2: Basic DBS check for Gold Keepers accepting high-value items (laptops, jewelry).</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">🛡️</div>
+        <h4>Automatic Insurance Cover</h4>
+        <p>Every parcel held by a Keeper is insured up to £200 from the moment it's scanned — at zero cost to the shopper or Keeper. Funded from Neary's platform margin.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">📷</div>
+        <h4>Computer Vision Check-In</h4>
+        <p>AI scans photos of arriving parcels for damage, tampering, or condition issues. Instant courier alert if anything is flagged — before the driver leaves.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">🔐</div>
+        <h4>One-Time QR Handover</h4>
+        <p>Parcels are only released when the Keeper scans the shopper's unique collection QR code. No QR, no handover. No exceptions.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">⭐</div>
+        <h4>Live Rating System</h4>
+        <p>Keepers must maintain a 4.5+ star rating to stay active. Drop below, and automatic review is triggered. Top performers earn the Gold Keeper badge.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-card-icon">🤖</div>
+        <h4>AI Fraud Detection</h4>
+        <p>Anomaly detection monitors Keeper behavior in real-time. Unusual patterns (e.g., accepting high-value items after long inactivity) trigger instant identity verification.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BECOME A KEEPER ── -->
+<section class="keeper-section" id="keepers">
+  <div class="section-inner">
+    <div class="keeper-cta-box reveal">
+      <p class="section-label" style="margin-bottom:1rem;">// Earn From Home</p>
+      <h2>Are you home during the day?<br/><span>Your door is worth money.</span></h2>
+      <p>Remote workers, retirees, parents — Neary turns your presence into income. No deliveries to make. Just open the door, scan the box, and earn.</p>
+      <div class="keeper-steps">
+        <div class="keeper-step">
+          <div class="keeper-step-num">1</div>
+          <span>Sign up & verify your ID</span>
+        </div>
+        <div class="keeper-step">
+          <div class="keeper-step-num">2</div>
+          <span>Toggle "Active" when you're home</span>
+        </div>
+        <div class="keeper-step">
+          <div class="keeper-step-num">3</div>
+          <span>Accept parcels via the app</span>
+        </div>
+        <div class="keeper-step">
+          <div class="keeper-step-num">4</div>
+          <span>Collect your earnings — instantly</span>
+        </div>
+      </div>
+      <a href="#contact" class="btn-primary" style="font-size:1.05rem;padding:1rem 2.5rem;">Apply for Founder Keeper Status →</a>
+      <p style="font-size:0.82rem;color:var(--muted);margin-top:1rem;">First 500 Keepers get higher commission for 6 months + a Gold Keeper badge.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── WAITLIST / CONTACT ── -->
+<section class="waitlist-section" id="contact">
+  <div class="section-inner">
+    <div class="waitlist-grid">
+      <div class="reveal">
+        <p class="section-label">// Early Access</p>
+        <h2>Join the<br/><span>Neary Waitlist.</span></h2>
+        <p class="section-desc" style="margin-bottom:2rem;">We're building London's first 100-hub neighbour relay network. Whether you're a courier, merchant, or want to become a Keeper — get in early.</p>
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+          <div style="display:flex;align-items:flex-start;gap:1rem;">
+            <div style="width:40px;height:40px;background:var(--green-dim);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">📍</div>
+            <div>
+              <div style="font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:0.2rem;">London Pilot — 2025</div>
+              <div style="font-size:0.88rem;color:var(--muted);">Starting with 100 hubs across high-density London postcodes.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:1rem;">
+            <div style="width:40px;height:40px;background:var(--green-dim);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">🤝</div>
+            <div>
+              <div style="font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:0.2rem;">Courier Partner Trials</div>
+              <div style="font-size:0.88rem;color:var(--muted);">Running shadow trials with regional depots. Interested carriers — reach out now.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:1rem;">
+            <div style="width:40px;height:40px;background:var(--green-dim);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">💼</div>
+            <div>
+              <div style="font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:0.2rem;">Investor & Press</div>
+              <div style="font-size:0.88rem;color:var(--muted);">Raising a seed round to build the UK's most-dense OOH parcel network.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal">
+        <!-- STEP 1: Role picker -->
+        <div id="form-step-1" class="form-card">
+          <p style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1.2rem;margin-bottom:0.4rem;">I am joining as a…</p>
+          <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.75rem;">Select the option that best describes you to personalise your experience.</p>
+          <div class="role-cards">
+            <button class="role-card" onclick="selectRole('courier', this)">
+              <div class="role-icon">🚛</div>
+              <div class="role-title">Courier / Logistics Partner</div>
+              <div class="role-desc">I want to pilot Neary to reduce failed deliveries and redelivery costs.</div>
+              <div class="role-check">✓</div>
+            </button>
+            <button class="role-card" onclick="selectRole('merchant', this)">
+              <div class="role-icon">🛍️</div>
+              <div class="role-title">Merchant / Retailer</div>
+              <div class="role-desc">I want to offer Neary as a delivery option to my customers at checkout.</div>
+              <div class="role-check">✓</div>
+            </button>
+            <button class="role-card" onclick="selectRole('keeper', this)">
+              <div class="role-icon">🏡</div>
+              <div class="role-title">Keeper — Earn From Home</div>
+              <div class="role-desc">I'm often at home and want to earn by holding parcels for my neighbours.</div>
+              <div class="role-check">✓</div>
+            </button>
+            <button class="role-card" onclick="selectRole('shopper', this)">
+              <div class="role-icon">📦</div>
+              <div class="role-title">Shopper</div>
+              <div class="role-desc">I want to use Neary to make sure my parcels are always delivered safely when I'm out.</div>
+              <div class="role-check">✓</div>
+            </button>
+          </div>
+          <button class="btn-primary form-submit" id="step1-next" onclick="goToStep2()" disabled>Continue →</button>
+        </div>
+
+        <!-- STEP 2: Details form (shown after role selected) -->
+        <div id="form-step-2" class="form-card" style="display:none;">
+          <button onclick="backToStep1()" style="background:none;border:none;color:var(--muted);font-size:0.85rem;cursor:pointer;margin-bottom:1.25rem;padding:0;display:flex;align-items:center;gap:0.4rem;">← Back</button>
+          <div id="role-summary" style="display:flex;align-items:center;gap:0.75rem;background:var(--green-dim);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:1.5rem;">
+            <span id="role-summary-icon" style="font-size:1.3rem;"></span>
+            <div>
+              <div id="role-summary-title" style="font-weight:700;font-size:0.9rem;"></div>
+              <div style="font-size:0.78rem;color:var(--muted);">Early access waitlist</div>
+            </div>
+            <div style="margin-left:auto;color:var(--green);font-size:0.8rem;font-family:'DM Mono',monospace;">SELECTED</div>
+          </div>
+          <div class="form-group">
+            <label>YOUR NAME</label>
+            <input type="text" id="f-name" placeholder="e.g. Alex Johnson" />
+          </div>
+          <div class="form-group">
+            <label>EMAIL ADDRESS</label>
+            <input type="email" id="f-email" placeholder="hello@yourcompany.com" />
+          </div>
+          <div id="courier-fields" style="display:none;">
+            <div class="form-group">
+              <label>COMPANY / DEPOT NAME</label>
+              <input type="text" id="f-company" placeholder="e.g. Evri London South Depot" />
+            </div>
+            <div class="form-group">
+              <label>APPROXIMATE WEEKLY PARCEL VOLUME</label>
+              <select id="f-volume">
+                <option value="">Select range</option>
+                <option>Under 500</option>
+                <option>500 – 2,000</option>
+                <option>2,000 – 10,000</option>
+                <option>Over 10,000</option>
+              </select>
+            </div>
+          </div>
+          <div id="merchant-fields" style="display:none;">
+            <div class="form-group">
+              <label>STORE / WEBSITE URL</label>
+              <input type="text" id="f-store" placeholder="e.g. https://yourshop.co.uk" />
+            </div>
+            <div class="form-group">
+              <label>E-COMMERCE PLATFORM</label>
+              <select id="f-platform">
+                <option value="">Select platform</option>
+                <option>Shopify</option>
+                <option>WooCommerce</option>
+                <option>Magento</option>
+                <option>Custom / Other</option>
+              </select>
+            </div>
+          </div>
+          <div id="keeper-fields" style="display:none;">
+            <div class="form-group">
+              <label>YOUR POSTCODE (LONDON ONLY FOR NOW)</label>
+              <input type="text" id="f-postcode" placeholder="e.g. E1 6RF" />
+            </div>
+            <div class="form-group">
+              <label>ROUGHLY, WHEN ARE YOU HOME?</label>
+              <select id="f-hours">
+                <option value="">Select availability</option>
+                <option>Mostly mornings (8am–12pm)</option>
+                <option>Mostly afternoons (12pm–5pm)</option>
+                <option>Most of the day</option>
+                <option>Evenings only</option>
+              </select>
+            </div>
+          </div>
+          <div id="shopper-fields" style="display:none;">
+            <div class="form-group">
+              <label>YOUR POSTCODE (LONDON ONLY FOR NOW)</label>
+              <input type="text" id="f-shopper-postcode" placeholder="e.g. SW1A 1AA" />
+            </div>
+            <div class="form-group">
+              <label>HOW OFTEN DO YOU MISS DELIVERIES?</label>
+              <select id="f-miss-rate">
+                <option value="">Select</option>
+                <option>Almost every time — I'm never home</option>
+                <option>A few times a month</option>
+                <option>Occasionally</option>
+                <option>Rarely, but it's really frustrating when it happens</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ANYTHING ELSE? (OPTIONAL)</label>
+            <textarea id="f-message" rows="3" placeholder="Tell us a bit more about your situation…" style="resize:vertical;"></textarea>
+          </div>
+          <button class="btn-primary form-submit" id="submit-btn" onclick="submitForm(event)">Join the Neary Waitlist →</button>
+          <p style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:1rem;">🔒 No spam. GDPR compliant. We'll only contact you about Neary early access.</p>
+        </div>
+
+        <!-- STEP 3: Success screen -->
+        <div id="form-step-3" class="form-card" style="display:none;text-align:center;padding:3rem 2rem;">
+          <div id="success-icon" style="font-size:3.5rem;margin-bottom:1rem;">🎉</div>
+          <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.5rem;margin-bottom:0.75rem;">You're on the list!</h3>
+          <p id="success-msg" style="color:var(--muted);font-size:0.95rem;line-height:1.7;margin-bottom:2rem;max-width:340px;margin-left:auto;margin-right:auto;"></p>
+          <div style="background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:2rem;">
+            <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem;">REFERENCE NUMBER</div>
+            <div id="ref-number" style="font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--green);letter-spacing:0.1em;"></div>
+          </div>
+          <p style="font-size:0.82rem;color:var(--muted);">Share Neary with someone who'd benefit:</p>
+          <div style="display:flex;gap:0.75rem;justify-content:center;margin-top:0.75rem;flex-wrap:wrap;">
+            <a href="https://twitter.com/intent/tweet?text=Just%20joined%20the%20Neary%20waitlist%20%E2%80%94%20a%20neighbour-relay%20delivery%20network%20that%27s%20fixing%20UK%20parcel%20delivery.%20neary.co" target="_blank" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem;font-size:0.85rem;color:var(--white);text-decoration:none;">Share on X</a>
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://neary.co" target="_blank" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem;font-size:0.85rem;color:var(--white);text-decoration:none;">Share on LinkedIn</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand" style="display:flex;align-items:center;gap:0.6rem;">
+          <svg width="36" height="36" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="80" height="80" rx="18" fill="#3EBA6E"/>
+            <polygon points="40,13 65,27 40,41 15,27" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
+            <polygon points="15,27 15,53 40,67 40,41" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
+            <polygon points="65,27 65,53 40,67 40,41" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
+          </svg>
+          Near<span>y</span>
+        </div>
+        <p class="footer-tagline">The UK's neighbour-relay network for guaranteed first-time delivery. Transforming the last mile into the last metre.</p>
+        <div style="margin-top:1.5rem;display:flex;gap:0.75rem;">
+          <div class="eco-badge">🌿 Green Logistics</div>
+          <div class="eco-badge">🔐 GDPR Compliant</div>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <ul>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#couriers">For Couriers</a></li>
+          <li><a href="#merchants">For Merchants</a></li>
+          <li><a href="#keepers">Become a Keeper</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About Neary</a></li>
+          <li><a href="#">Press & Media</a></li>
+          <li><a href="#">Investor Deck</a></li>
+          <li><a href="#">Careers</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Legal</h5>
+        <ul>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Keeper Agreement</a></li>
+          <li><a href="#">Insurance Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2025 Neary Ltd. All rights reserved. Registered in England & Wales.</p>
+      <p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="87efe2ebebe8c7e9e2e6f5fea9e4e8">[email&#160;protected]</a> · London, UK</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Tab switching
+  function showTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        e.target.querySelectorAll('.flow-step, .trust-card').forEach((el, i) => {
+          el.style.transitionDelay = `${i * 0.08}s`;
+          el.classList.add('reveal', 'visible');
+        });
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // ── MULTI-STEP WAITLIST FORM ──
+  let selectedRole = null;
+  const roleData = {
+    courier: {
+      icon: '🚛',
+      title: 'Courier / Logistics Partner',
+      successMsg: "We'll reach out about our shadow trial programme. Expect to hear from us within 48 hours to discuss a pilot in your area.",
+      successIcon: '🤝'
+    },
+    merchant: {
+      icon: '🛍️',
+      title: 'Merchant / Retailer',
+      successMsg: "We'll send you our merchant integration guide and let you know as soon as the Neary checkout widget is available for your platform.",
+      successIcon: '🛍️'
+    },
+    keeper: {
+      icon: '🏡',
+      title: 'Keeper',
+      successMsg: "You're one of our founding Keepers! We'll verify your postcode and send you full onboarding details when we launch in your area.",
+      successIcon: '🎉'
+    },
+    shopper: {
+      icon: '📦',
+      title: 'Shopper',
+      successMsg: "Great news — Neary is free to use as a shopper. We'll let you know the moment Neary goes live in your postcode so you never miss a delivery again.",
+      successIcon: '🛍️'
+    }
+  };
+
+  function selectRole(role, btn) {
+    selectedRole = role;
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    const next = document.getElementById('step1-next');
+    next.disabled = false;
+    next.style.opacity = '1';
+  }
+
+  function goToStep2() {
+    if (!selectedRole) return;
+    document.getElementById('form-step-1').style.display = 'none';
+    document.getElementById('form-step-2').style.display = 'block';
+    document.getElementById('role-summary-icon').textContent = roleData[selectedRole].icon;
+    document.getElementById('role-summary-title').textContent = roleData[selectedRole].title;
+    document.getElementById('courier-fields').style.display = selectedRole === 'courier' ? 'block' : 'none';
+    document.getElementById('merchant-fields').style.display = selectedRole === 'merchant' ? 'block' : 'none';
+    document.getElementById('keeper-fields').style.display = selectedRole === 'keeper' ? 'block' : 'none';
+    document.getElementById('shopper-fields').style.display = selectedRole === 'shopper' ? 'block' : 'none';
+    document.getElementById('form-step-2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function backToStep1() {
+    document.getElementById('form-step-2').style.display = 'none';
+    document.getElementById('form-step-1').style.display = 'block';
+  }
+
+  function generateRef() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let ref = 'NRY-';
+    for (let i = 0; i < 8; i++) ref += chars[Math.floor(Math.random() * chars.length)];
+    return ref;
+  }
+
+  function submitForm(e) {
+    const btn = document.getElementById('submit-btn');
+    const name = document.getElementById('f-name').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+
+    if (!name || !email) {
+      alert('Please fill in your name and email address.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    btn.textContent = 'Submitting…';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      const rd = roleData[selectedRole];
+      document.getElementById('form-step-2').style.display = 'none';
+      const s3 = document.getElementById('form-step-3');
+      s3.style.display = 'block';
+      document.getElementById('success-icon').textContent = rd.successIcon;
+      document.getElementById('success-msg').textContent =
+        'Thanks, ' + name.split(' ')[0] + '! ' + rd.successMsg;
+      document.getElementById('ref-number').textContent = generateRef();
+      s3.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 1200);
+  }
+
+  // Disable next button initially
+  document.addEventListener('DOMContentLoaded', () => {
+    const next = document.getElementById('step1-next');
+    if (next) { next.disabled = true; next.style.opacity = '0.5'; }
+  });
+</script>
+</body>
+</html>
