@@ -171,24 +171,28 @@
       z-index: 0;
     }
 
-    <!-- NAV -->
-<nav>
-  <a href="/" class="nav-logo">
-    <svg width="36" height="36" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="80" height="80" rx="18" fill="#3EBA6E"/>
-      <polygon points="40,13 65,27 40,41 15,27" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
-      <polygon points="15,27 15,53 40,67 40,41" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
-      <polygon points="65,27 65,53 40,67 40,41" fill="white" stroke="#3EBA6E" stroke-width="2.5" stroke-linejoin="round"/>
-    </svg>Neary.co</span></a>
-  <ul class="nav-links">
-    <li><a href="#how-it-works">How it works</a></li>
-    <li><a href="#for-couriers">Couriers</a></li>
-    <li><a href="#for-merchants">Merchants</a></li>
-    <li><a href="#become-a-keeper">Become a Keeper</a></li>
-    <li><a href="#faq">FAQs</a></li>
-    <li><a href="#join-waitlist" class="nav-cta">Claim your role →</a></li>
-  </ul>
-</nav>
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 72px;
+      background: rgba(14,28,43,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800; font-size: 1.55rem; letter-spacing: -0.03em;
+      color: var(--white); text-decoration: none;
+      display: flex; align-items: center; gap: 0.55rem;
+    }
+    .nav-logo span { color: var(--green); }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-cta { background: var(--green) !important; color: var(--navy) !important; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 700 !important; }
+    .nav-cta:hover { background: var(--green-light) !important; }
+
     /* HERO */
     .hero {
       position: relative; min-height: 100vh;
