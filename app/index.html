@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"/>
+<!-- iOS PWA critical tags -->
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Neary.co"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0C1824"/>
+<meta name="description" content="Earn from home. Hold parcels for your neighbours. London's neighbourhood cooperative."/>
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json"/>
+<!-- iOS icons (fallback) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%233EBA6E'/%3E%3Cpolygon points='90,29 146,61 90,93 34,61' fill='white' stroke='%233EBA6E' stroke-width='5' stroke-linejoin='round'/%3E%3Cpolygon points='34,61 34,121 90,153 90,93' fill='white' stroke='%233EBA6E' stroke-width='5' stroke-linejoin='round'/%3E%3Cpolygon points='146,61 146,121 90,153 90,93' fill='white' stroke='%233EBA6E' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<title>Neary.co</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & ROOT ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;}
+:root{
+  --g:#3EBA6E; --g2:#56D485; --g-dim:rgba(62,186,110,0.14); --g-dim2:rgba(62,186,110,0.07);
+  --bg:#0C1824; --bg2:#121E2E; --card:#16273C; --card2:#1C3050;
+  --white:#F0F6F2; --muted:#6A8FA8; --border:rgba(62,186,110,0.15);
+  --amber:#F5A623; --red:#E05252; --blue:#4A9EFF;
+  --safe-top:env(safe-area-inset-top,44px);
+  --safe-bottom:env(safe-area-inset-bottom,20px);
+  --tab-h:calc(56px + var(--safe-bottom));
+  --nav-h:calc(52px + var(--safe-top));
+  --r:14px; --r-sm:10px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{
+  font-family:-apple-system,'Plus Jakarta Sans',BlinkMacSystemFont,sans-serif;
+  font-size:15px;color:var(--white);line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+}
+
+/* ── APP SHELL ── */
+#app{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--bg);
+}
+
+/* ── SCREENS ── */
+#screen-root{flex:1;position:relative;overflow:hidden;}
+.screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  transition:transform 0.32s cubic-bezier(0.36,0.66,0.04,1),opacity 0.32s ease;
+  will-change:transform;
+  overflow:hidden;
+}
+.screen.hidden{transform:translateX(100%);opacity:0;pointer-events:none;}
+.screen.prev{transform:translateX(-30%);opacity:0.8;pointer-events:none;}
+.screen.active{transform:translateX(0);opacity:1;pointer-events:all;}
+
+/* ── SCROLL CONTENT ── */
+.scroll{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+.scroll::-webkit-scrollbar{display:none;}
+
+/* ── STATUS BAR ── */
+.statusbar{
+  height:var(--safe-top);min-height:44px;
+  background:var(--bg);flex-shrink:0;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 20px 6px;font-size:12px;font-weight:700;
+  position:sticky;top:0;z-index:90;
+}
+.statusbar-time{font-size:15px;font-weight:800;letter-spacing:-0.02em;}
+.statusbar-icons{display:flex;gap:5px;align-items:center;}
+.statusbar-icons svg{width:14px;height:14px;fill:var(--white);}
+
+/* ── NAV BAR (back + title) ── */
+.navbar{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 16px 10px;flex-shrink:0;
+  position:relative;z-index:10;
+}
+.back-btn{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;color:var(--g);
+  flex-shrink:0;transition:opacity 0.15s;
+  -webkit-user-select:none;
+}
+.back-btn:active{opacity:0.6;}
+.nav-title{font-size:17px;font-weight:700;color:var(--white);letter-spacing:-0.01em;}
+.nav-right{margin-left:auto;}
+
+/* ── TAB BAR ── */
+#tab-bar{
+  height:var(--tab-h);
+  background:rgba(12,24,36,0.94);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-top:0.5px solid rgba(255,255,255,0.1);
+  display:flex;align-items:flex-start;padding-top:8px;
+  flex-shrink:0;
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;
+  color:var(--muted);transition:color 0.18s;
+  -webkit-user-select:none;
+}
+.tab.on{color:var(--g);}
+.tab-icon{font-size:23px;line-height:1;}
+.tab-lbl{font-size:10px;font-weight:600;letter-spacing:0.01em;}
+
+/* ── TYPOGRAPHY ── */
+h1{font-size:28px;font-weight:800;color:var(--white);line-height:1.1;letter-spacing:-0.03em;}
+h2{font-size:22px;font-weight:700;color:var(--white);letter-spacing:-0.02em;}
+h3{font-size:17px;font-weight:700;color:var(--white);}
+.sec-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;}
+.muted{color:var(--muted);}
+
+/* ── BUTTONS ── */
+.btn{
+  width:100%;padding:15px 20px;border-radius:var(--r);border:none;
+  font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity 0.15s,transform 0.1s;
+  -webkit-user-select:none;touch-action:manipulation;
+}
+.btn:active{opacity:0.8;transform:scale(0.98);}
+.btn-g{background:var(--g);color:var(--bg);}
+.btn-g:disabled{background:rgba(62,186,110,0.3);color:rgba(12,24,36,0.5);}
+.btn-card{background:var(--card);color:var(--white);border:1px solid var(--border);}
+.btn-sm{padding:10px 18px;font-size:13px;border-radius:var(--r-sm);width:auto;}
+.btn-red{background:rgba(224,82,82,0.15);color:var(--red);border:1px solid rgba(224,82,82,0.2);}
+
+/* ── INPUTS ── */
+.input-grp{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.input-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;}
+.input{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);padding:13px 15px;
+  color:var(--white);font-family:inherit;font-size:15px;
+  outline:none;width:100%;transition:border-color 0.2s;
+  -webkit-appearance:none;
+}
+.input:focus{border-color:var(--g);}
+.input::placeholder{color:var(--muted);}
+select.input{cursor:pointer;}
+select.input option{background:var(--card);}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);transition:border-color 0.2s;}
+.card-p{padding:16px;}
+.card-tap{cursor:pointer;}
+.card-tap:active{opacity:0.75;}
+
+/* ── LIST ROWS (iOS style) ── */
+.list-group{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.list-row{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;border-bottom:0.5px solid var(--border);
+  cursor:pointer;transition:background 0.1s;
+}
+.list-row:last-child{border-bottom:none;}
+.list-row:active{background:var(--card2);}
+.list-ico{width:32px;height:32px;border-radius:8px;background:var(--g-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.list-main{flex:1;}
+.list-title{font-size:15px;font-weight:600;color:var(--white);}
+.list-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+.chevron{color:var(--muted);font-size:16px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:0.03em;}
+.badge-g{background:var(--g-dim);color:var(--g);border:1px solid rgba(62,186,110,0.25);}
+.badge-amber{background:rgba(245,166,35,0.12);color:var(--amber);border:1px solid rgba(245,166,35,0.2);}
+.badge-muted{background:rgba(106,143,168,0.1);color:var(--muted);border:1px solid rgba(106,143,168,0.15);}
+.badge-red{background:rgba(224,82,82,0.1);color:var(--red);border:1px solid rgba(224,82,82,0.2);}
+.badge-blue{background:rgba(74,158,255,0.1);color:var(--blue);border:1px solid rgba(74,158,255,0.2);}
+
+/* ── TOGGLE (iOS style) ── */
+.toggle-wrap{position:relative;width:51px;height:31px;cursor:pointer;flex-shrink:0;}
+.toggle-wrap input{display:none;}
+.toggle-track{
+  position:absolute;inset:0;border-radius:15.5px;
+  background:#3A3A3C;transition:background 0.3s;
+}
+.toggle-wrap input:checked~.toggle-track{background:var(--g);}
+.toggle-thumb{
+  position:absolute;top:2px;left:2px;
+  width:27px;height:27px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.toggle-wrap input:checked~.toggle-track+.toggle-thumb,
+.toggle-wrap input:checked~.toggle-thumb{transform:translateX(20px);}
+
+/* ── SEGMENT CONTROL ── */
+.segment{display:flex;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px;gap:0;margin-bottom:16px;}
+.seg-btn{flex:1;padding:8px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.seg-btn.on{background:var(--g);color:var(--bg);}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
+.stat-val{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-0.02em;}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ── WALLET ── */
+.wallet-hero{
+  background:linear-gradient(135deg,rgba(62,186,110,0.2) 0%,rgba(62,186,110,0.05) 100%);
+  border:1px solid var(--border);border-radius:20px;padding:24px;
+  text-align:center;margin-bottom:14px;
+}
+.wallet-bal{font-size:48px;font-weight:800;color:var(--white);letter-spacing:-0.05em;line-height:1;}
+.wallet-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+
+/* ── TX ROW ── */
+.tx-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--border);}
+.tx-row:last-child{border-bottom:none;}
+.tx-left{display:flex;align-items:center;gap:10px;}
+.tx-ico{width:34px;height:34px;border-radius:10px;background:var(--g-dim);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.tx-name{font-size:14px;font-weight:600;color:var(--white);}
+.tx-date{font-size:11px;color:var(--muted);}
+.tx-pos{font-size:14px;font-weight:700;color:var(--g);}
+.tx-neg{font-size:14px;font-weight:700;color:var(--red);}
+
+/* ── NUMPAD ── */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 4px;}
+.num-key{
+  height:58px;border-radius:var(--r);background:var(--card);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:500;color:var(--white);cursor:pointer;
+  transition:background 0.1s;-webkit-user-select:none;
+}
+.num-key:active{background:var(--card2);}
+.amount-disp{font-size:52px;font-weight:800;color:var(--white);text-align:center;letter-spacing:-0.04em;padding:16px 0 8px;}
+
+/* ── MAP MOCK ── */
+.map-mock{
+  width:100%;height:200px;background:var(--card);border-radius:var(--r);
+  border:1px solid var(--border);position:relative;overflow:hidden;flex-shrink:0;
+}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(62,186,110,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(62,186,110,0.07) 1px,transparent 1px);background-size:28px 28px;}
+.map-road-h{position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.07);transform:translateY(-50%);}
+.map-road-v{position:absolute;left:38%;top:0;bottom:0;width:3px;background:rgba(255,255,255,0.06);}
+.map-you{position:absolute;top:50%;left:38%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--white);border:2px solid var(--bg);box-shadow:0 0 0 6px rgba(255,255,255,0.15);z-index:10;}
+.map-pin{position:absolute;width:38px;height:38px;border-radius:50%;border:2.5px solid white;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;z-index:8;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.2s;}
+.map-pin:active{transform:scale(0.92);}
+.map-pin.sel{box-shadow:0 0 0 5px rgba(62,186,110,0.3);}
+
+/* ── QR CODE (CSS grid) ── */
+.qr-wrap{width:170px;height:170px;background:var(--white);border-radius:var(--r);padding:12px;margin:0 auto;display:grid;grid-template-columns:repeat(9,1fr);gap:2px;}
+.qr-b{background:#0C1824;border-radius:1px;}
+.qr-w{background:transparent;}
+
+/* ── PARCEL ROW ── */
+.parcel-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.parcel-row:last-child{border-bottom:none;}
+.parcel-row:active{background:var(--card2);}
+.p-ico{width:42px;height:42px;border-radius:var(--r-sm);background:var(--g-dim);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.p-name{font-size:14px;font-weight:600;color:var(--white);}
+.p-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+
+/* ── VIEWFINDER ── */
+.vf{position:relative;width:100%;height:240px;background:#000;overflow:hidden;flex-shrink:0;}
+.vf-corner{position:absolute;width:26px;height:26px;border-color:var(--g);border-style:solid;}
+.vf-tl{top:20px;left:20px;border-width:3px 0 0 3px;border-radius:3px 0 0 0;}
+.vf-tr{top:20px;right:20px;border-width:3px 3px 0 0;border-radius:0 3px 0 0;}
+.vf-bl{bottom:20px;left:20px;border-width:0 0 3px 3px;border-radius:0 0 0 3px;}
+.vf-br{bottom:20px;right:20px;border-width:0 3px 3px 0;border-radius:0 0 3px 0;}
+.vf-scan{position:absolute;left:24px;right:24px;height:2px;background:linear-gradient(90deg,transparent,var(--g),transparent);animation:scan 2s ease-in-out infinite;}
+@keyframes scan{0%,100%{top:24px;}50%{top:calc(100% - 24px);}}
+.vf-grid{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.02) 0,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 20px),repeating-linear-gradient(90deg,rgba(255,255,255,0.02) 0,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 20px);}
+
+/* ── SUCCESS ── */
+.success-ring{width:96px;height:96px;border-radius:50%;background:var(--g-dim);border:2px solid var(--g);display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 18px;animation:pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+
+/* ── STARS ── */
+.star-row{display:flex;gap:6px;justify-content:center;}
+.star{font-size:32px;cursor:pointer;color:rgba(245,166,35,0.25);transition:color 0.12s;}
+.star.lit{color:var(--amber);}
+
+/* ── TIP BUTTONS ── */
+.tip-row{display:flex;gap:8px;}
+.tip-btn{flex:1;padding:12px 8px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--card);color:var(--white);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:center;transition:all 0.15s;}
+.tip-btn.sel{background:var(--amber);border-color:var(--amber);color:var(--bg);}
+.tip-btn:active{opacity:0.7;}
+
+/* ── PHOTO UPLOAD ── */
+.photo-up{
+  width:100%;height:100px;background:var(--card);border:2px dashed var(--border);
+  border-radius:var(--r);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;cursor:pointer;color:var(--muted);font-size:13px;
+  transition:all 0.2s;
+}
+.photo-up:active{border-color:var(--g);background:var(--g-dim);}
+.photo-up.done{border-color:var(--g);background:var(--g-dim);color:var(--g);}
+
+/* ── ACTIVE DOT ── */
+.active-dot{width:12px;height:12px;border-radius:50%;background:var(--g);box-shadow:0 0 0 4px rgba(62,186,110,0.2);animation:glow 2s ease-in-out infinite;}
+.active-dot.off{background:var(--muted);animation:none;box-shadow:none;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 4px rgba(62,186,110,0.2);}50%{box-shadow:0 0 0 8px rgba(62,186,110,0.06);}}
+
+/* ── NOTIF ROW ── */
+.notif-row{display:flex;gap:11px;padding:13px 0;border-bottom:0.5px solid var(--border);}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--g);margin-top:5px;flex-shrink:0;}
+.notif-dot.read{background:var(--card2);}
+.notif-title{font-size:14px;font-weight:600;color:var(--white);margin-bottom:2px;}
+.notif-body{font-size:13px;color:var(--muted);line-height:1.5;}
+.notif-time{font-size:11px;color:var(--muted);margin-top:3px;}
+
+/* ── BAR CHART (CSS) ── */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:72px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.bar-fill{width:100%;border-radius:5px 5px 0 0;}
+.bar-lbl{font-size:10px;color:var(--muted);}
+
+/* ── REFER CARD ── */
+.refer-card{background:linear-gradient(135deg,rgba(62,186,110,0.18) 0%,rgba(62,186,110,0.05) 100%);border:1px solid var(--border);border-radius:18px;padding:20px;text-align:center;margin-bottom:14px;}
+.refer-code{font-size:22px;font-weight:800;color:var(--g);letter-spacing:0.12em;background:var(--bg);border-radius:var(--r-sm);padding:12px;margin:12px 0;cursor:pointer;transition:opacity 0.15s;}
+.refer-code:active{opacity:0.6;}
+
+/* ── PROGRESS BAR ── */
+.prog-track{height:5px;background:var(--card2);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--g);border-radius:3px;transition:width 1s ease;}
+
+/* ── STATUS TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-row{display:flex;gap:14px;align-items:flex-start;}
+.tl-dot-wrap{display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;}
+.tl-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.tl-dot.done{background:var(--g);}
+.tl-dot.now{background:var(--g);box-shadow:0 0 0 4px rgba(62,186,110,0.2);}
+.tl-dot.wait{background:var(--card2);border:2px solid var(--border);}
+.tl-line{width:2px;background:var(--border);flex:1;min-height:20px;margin:3px 0;}
+.tl-line.done{background:var(--g);}
+.tl-text{flex:1;padding-bottom:16px;}
+.tl-label{font-size:14px;font-weight:600;color:var(--white);}
+.tl-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+
+/* ── INSTALL BANNER ── */
+#install-banner{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;gap:12px;
+  flex-shrink:0;display:none;
+}
+.install-icon{width:36px;height:36px;background:var(--g);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+
+/* ── SPACING ── */
+.px{padding:0 16px;}
+.pt{padding-top:14px;}
+.pb{padding-bottom:14px;}
+.p16{padding:16px;}
+.gap-sm{margin-bottom:10px;}
+.gap{margin-bottom:14px;}
+.gap-lg{margin-bottom:24px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INSTALL BANNER (shows on Android / desktop) -->
+  <div id="install-banner">
+    <div class="install-icon">📦</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;">Add Neary.co to Home Screen</div>
+      <div style="font-size:11px;color:var(--muted);">Works offline · Full-screen · Instant</div>
+    </div>
+    <button id="install-btn" class="btn btn-g btn-sm" style="padding:8px 14px;font-size:12px;">Add</button>
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;">×</button>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar" id="statusbar">
+    <span class="statusbar-time" id="clock">9:41</span>
+    <div class="statusbar-icons">
+      <svg viewBox="0 0 24 24"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M23 7 13 2 3 7v10l10 5 10-5V7z"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/></svg>
+    </div>
+  </div>
+
+  <!-- SCREEN ROOT -->
+  <div id="screen-root">
+
+    <!-- ════════════════════════════════
+         SPLASH / ROLE SELECT
+         ════════════════════════════════ -->
+    <div class="screen active" id="sc-splash">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+        <!-- Logo -->
+        <div style="width:84px;height:84px;background:var(--g);border-radius:22px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 12px 32px rgba(62,186,110,0.4);">
+          <svg width="52" height="52" viewBox="0 0 80 80" fill="none">
+            <polygon points="40,10 68,25 40,40 12,25" fill="white" stroke="#3EBA6E" stroke-width="2" stroke-linejoin="round"/>
+            <polygon points="12,25 12,55 40,70 40,40" fill="white" stroke="#3EBA6E" stroke-width="2" stroke-linejoin="round"/>
+            <polygon points="68,25 68,55 40,70 40,40" fill="white" stroke="#3EBA6E" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div style="font-size:34px;font-weight:800;letter-spacing:-0.04em;margin-bottom:6px;">Near<span style="color:var(--g)">y.co</span></div>
+        <div style="font-size:14px;color:var(--muted);margin-bottom:40px;">Community · Cooperative · Co-existing</div>
+
+        <div style="width:100%;display:flex;flex-direction:column;gap:11px;">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.07em;margin-bottom:2px;">I AM JOINING AS A…</div>
+
+          <div class="card card-p card-tap" style="display:flex;align-items:center;gap:14px;padding:17px;" onclick="nav('sc-signup','keeper')">
+            <div style="font-size:30px;">🏡</div>
+            <div style="flex:1;text-align:left;">
+              <div style="font-weight:700;font-size:15px;margin-bottom:2px;">Keeper — Earn From Home</div>
+              <div style="font-size:12px;color:var(--muted);">Hold parcels, earn per delivery</div>
+            </div>
+            <div style="color:var(--g);font-size:18px;font-weight:300;">›</div>
+          </div>
+
+          <div class="card card-p card-tap" style="display:flex;align-items:center;gap:14px;padding:17px;" onclick="nav('sc-shopper-home')">
+            <div style="font-size:30px;">📦</div>
+            <div style="flex:1;text-align:left;">
+              <div style="font-weight:700;font-size:15px;margin-bottom:2px;">Shopper</div>
+              <div style="font-size:12px;color:var(--muted);">Never miss a delivery again</div>
+            </div>
+            <div style="color:var(--g);font-size:18px;font-weight:300;">›</div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;font-size:13px;color:var(--muted);">
+          Already a Keeper? <span style="color:var(--g);cursor:pointer;" onclick="nav('sc-home-keeper')">Sign in →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SIGN UP
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-signup">
+      <div class="navbar">
+        <div class="back-btn" onclick="back()">‹</div>
+        <div class="nav-title">Create account</div>
+      </div>
+      <div class="scroll px pt">
+        <!-- Progress -->
+        <div style="display:flex;gap:5px;margin-bottom:22px;">
+          <div style="flex:1;height:3px;background:var(--g);border-radius:2px;"></div>
+          <div style="flex:1;height:3px;background:var(--card2);border-radius:2px;"></div>
+        </div>
+        <h2 style="margin-bottom:6px;">Welcome to Neary.co 👋</h2>
+        <p class="muted" style="margin-bottom:22px;font-size:14px;">Join London's neighbourhood cooperative. Free, and always will be.</p>
+        <div class="input-grp"><div class="input-lbl">Full Name</div><input class="input" type="text" placeholder="Sarah Johnson" value="Sarah Johnson"/></div>
+        <div class="input-grp"><div class="input-lbl">Email Address</div><input class="input" type="email" placeholder="hello@example.com" value="sarah.j@gmail.com"/></div>
+        <div class="input-grp"><div class="input-lbl">Mobile Number</div><input class="input" type="tel" placeholder="+44 7xxx xxxxxx" value="+44 7912 345678"/></div>
+        <div class="input-grp"><div class="input-lbl">Postcode</div><input class="input" type="text" placeholder="E1 6RF" value="E1 6RF"/></div>
+        <div style="background:var(--g-dim2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:18px;display:flex;gap:10px;">
+          <span style="font-size:16px;">🔒</span>
+          <span style="font-size:12px;color:var(--muted);">Your data is protected under GDPR. We only use your details to operate the Neary.co network.</span>
+        </div>
+        <button class="btn btn-g" onclick="nav('sc-verify')">Continue →</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         ID VERIFY
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-verify">
+      <div class="navbar">
+        <div class="back-btn" onclick="back()">‹</div>
+        <div class="nav-title">Verify identity</div>
+      </div>
+      <div class="scroll px pt">
+        <div style="display:flex;gap:5px;margin-bottom:22px;">
+          <div style="flex:1;height:3px;background:var(--g);border-radius:2px;"></div>
+          <div style="flex:1;height:3px;background:var(--g);border-radius:2px;"></div>
+        </div>
+        <p class="muted gap" style="font-size:14px;">To protect shoppers and couriers, all Keepers must pass a quick identity check before going live.</p>
+
+        <div class="sec-lbl">Step 1 — Photo ID</div>
+        <div class="photo-up gap" id="pu1" onclick="uploadPhoto(this,'✅ Licence uploaded')">
+          <span style="font-size:28px;">📷</span>
+          <span>Tap to upload driving licence or passport</span>
+        </div>
+
+        <div class="sec-lbl">Step 2 — Proof of address</div>
+        <div class="photo-up gap" id="pu2" onclick="uploadPhoto(this,'✅ Bill uploaded')">
+          <span style="font-size:28px;">📄</span>
+          <span>Tap to upload utility bill or bank statement</span>
+        </div>
+
+        <div class="sec-lbl">Step 3 — Right to receive payment</div>
+        <div class="card card-p gap" style="display:flex;gap:12px;align-items:flex-start;">
+          <input type="checkbox" id="rtw-check" style="width:20px;height:20px;accent-color:var(--g);margin-top:2px;flex-shrink:0;cursor:pointer;"/>
+          <label for="rtw-check" style="font-size:13px;color:var(--muted);cursor:pointer;line-height:1.55;">I confirm I am legally entitled to receive payment for services in the United Kingdom and that the information I have provided is accurate.</label>
+        </div>
+
+        <div class="card card-p gap" style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="font-size:20px;">⭐</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Gold Keeper — optional upgrade</div>
+            <p class="muted" style="font-size:12px;">Add a Basic DBS check to accept high-value parcels and earn more. We guide you through the process.</p>
+            <span class="badge badge-amber" style="margin-top:8px;">+ Gold Keeper earnings</span>
+          </div>
+        </div>
+        <button class="btn btn-g" onclick="nav('sc-approved')">Submit for review →</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         APPROVED
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-approved">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;text-align:center;">
+        <div class="success-ring">🎉</div>
+        <h2 style="margin-bottom:8px;">You're a Keeper!</h2>
+        <p class="muted" style="margin-bottom:6px;font-size:14px;">Welcome to the network, <strong style="color:var(--white);">Sarah</strong>. You're now one of the people your street depends on.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;width:100%;margin:20px 0 24px;">
+          <div class="list-group">
+            <div class="list-row" style="cursor:default;">
+              <div class="list-ico">🏅</div>
+              <div class="list-main"><div class="list-title">Founder Keeper</div><div class="list-sub">Higher earnings for your first 6 months</div></div>
+            </div>
+            <div class="list-row" style="cursor:default;">
+              <div class="list-ico">🛡️</div>
+              <div class="list-main"><div class="list-title">Insured up to £200</div><div class="list-sub">Every parcel auto-covered from scan-in</div></div>
+            </div>
+            <div class="list-row" style="cursor:default;">
+              <div class="list-ico">⚡</div>
+              <div class="list-main"><div class="list-title">Instant payouts via Stripe</div><div class="list-sub">Earnings hit your wallet per handover</div></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-g" style="margin-bottom:12px;" onclick="nav('sc-home-keeper')">Go to my Dashboard →</button>
+        <button class="btn btn-card btn-sm" onclick="nav('sc-refer')">Invite a neighbour first 🎁</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         KEEPER HOME
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-home-keeper">
+      <div class="scroll">
+        <div class="px pt">
+          <!-- Greeting -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div style="font-size:13px;color:var(--muted);">Good morning 👋</div>
+              <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;">Sarah J.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="badge badge-g" style="cursor:pointer;">🏅 Founder</span>
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--bg);cursor:pointer;" onclick="switchTab('profile')">SJ</div>
+            </div>
+          </div>
+
+          <!-- Active/Away hero -->
+          <div id="active-hero" style="background:linear-gradient(135deg,rgba(62,186,110,0.18) 0%,rgba(62,186,110,0.06) 100%);border:1px solid var(--border);border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+            <div id="adot" class="active-dot"></div>
+            <div style="flex:1;">
+              <div style="font-size:16px;font-weight:800;" id="astatus">You're on duty</div>
+              <div style="font-size:12px;color:var(--muted);" id="asub">Couriers can see your door</div>
+            </div>
+            <label class="toggle-wrap">
+              <input type="checkbox" id="atog" checked onchange="toggleActive(this.checked)"/>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+
+          <!-- Stats -->
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-val" style="color:var(--g);">£23.60</div><div class="stat-lbl">This week</div></div>
+            <div class="stat-card"><div class="stat-val">18</div><div class="stat-lbl">Parcels held</div></div>
+            <div class="stat-card"><div class="stat-val" style="color:var(--amber);">4.9 ★</div><div class="stat-lbl">Rating</div></div>
+            <div class="stat-card"><div class="stat-val" style="color:var(--g);">£3.50</div><div class="stat-lbl">Tips today</div></div>
+          </div>
+
+          <!-- Incoming alert -->
+          <div style="background:rgba(62,186,110,0.1);border:1px solid var(--g);border-radius:var(--r);padding:14px;display:flex;gap:12px;align-items:center;margin-bottom:14px;cursor:pointer;" onclick="nav('sc-scan')" class="card-tap">
+            <span style="font-size:22px;">🚚</span>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:700;color:var(--g);">Parcel incoming!</div>
+              <div style="font-size:12px;color:var(--muted);">Royal Mail · 3 stops away · Tap to prepare</div>
+            </div>
+            <div style="color:var(--g);">›</div>
+          </div>
+
+          <!-- Current parcels -->
+          <div class="sec-lbl">HOLDING NOW (2)</div>
+          <div class="list-group gap">
+            <div class="parcel-row" onclick="nav('sc-parcel-detail')">
+              <div class="p-ico">📦</div>
+              <div style="flex:1;"><div class="p-name">DPD · John S.</div><div class="p-sub">Arrived 13:42 · 2h 23m ago</div></div>
+              <span class="badge badge-amber">Holding</span>
+            </div>
+            <div class="parcel-row" onclick="nav('sc-parcel-detail')">
+              <div class="p-ico">📦</div>
+              <div style="flex:1;"><div class="p-name">Evri · Maria L.</div><div class="p-sub">Arrived 15:05 · 20m ago</div></div>
+              <span class="badge badge-g">New</span>
+            </div>
+          </div>
+        </div>
+        <div style="height:var(--safe-bottom)"></div>
+      </div>
+      <div id="tab-bar-keeper" class="tab-bar-inst"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         PARCELS LIST
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-parcels">
+      <div style="padding:12px 16px 6px;flex-shrink:0;"><h2>My Parcels</h2></div>
+      <div class="scroll px">
+        <div class="sec-lbl pt">HOLDING NOW</div>
+        <div class="list-group gap">
+          <div class="parcel-row" onclick="nav('sc-parcel-detail')">
+            <div class="p-ico">📦</div>
+            <div style="flex:1;"><div class="p-name">DPD · John S.</div><div class="p-sub">2h 23m · ⏳ Awaiting</div></div>
+            <span class="badge badge-amber">Holding</span>
+          </div>
+          <div class="parcel-row" onclick="nav('sc-parcel-detail')">
+            <div class="p-ico">📦</div>
+            <div style="flex:1;"><div class="p-name">Evri · Maria L.</div><div class="p-sub">20m · Just arrived</div></div>
+            <span class="badge badge-g">New</span>
+          </div>
+        </div>
+        <div class="sec-lbl">COLLECTED TODAY</div>
+        <div class="list-group gap">
+          <div class="parcel-row">
+            <div class="p-ico" style="background:rgba(106,143,168,0.1);">✅</div>
+            <div style="flex:1;"><div class="p-name">Royal Mail · Alex T.</div><div class="p-sub">Collected 11:22 · + Earned</div></div>
+            <span class="badge badge-muted">Done</span>
+          </div>
+          <div class="parcel-row">
+            <div class="p-ico" style="background:rgba(106,143,168,0.1);">✅</div>
+            <div style="flex:1;"><div class="p-name">Amazon · Fatima H.</div><div class="p-sub">Collected 09:45 · + Earned + £0.50 tip</div></div>
+            <span class="badge badge-muted">Done</span>
+          </div>
+        </div>
+        <div style="height:var(--safe-bottom)"></div>
+      </div>
+      <div id="tab-bar-parcels" class="tab-bar-inst"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         PARCEL DETAIL
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-parcel-detail">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Parcel Detail</div></div>
+      <div class="scroll px">
+        <div class="card card-p" style="text-align:center;margin-bottom:14px;padding:22px;">
+          <div style="font-size:48px;margin-bottom:12px;">📦</div>
+          <div style="font-size:18px;font-weight:800;margin-bottom:4px;">DPD Parcel</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">For: John Smith · No. 12 next door</div>
+          <span class="badge badge-amber">⏳ Awaiting collection</span>
+        </div>
+        <div class="sec-lbl">Parcel info</div>
+        <div class="list-group gap">
+          <div class="list-row" style="cursor:default;"><span style="color:var(--muted);font-size:13px;width:90px;flex-shrink:0;">Tracking</span><span style="font-size:13px;font-weight:600;font-family:monospace;color:var(--white);">DPD-JK8821X</span></div>
+          <div class="list-row" style="cursor:default;"><span style="color:var(--muted);font-size:13px;width:90px;flex-shrink:0;">Courier</span><span style="font-size:13px;font-weight:600;color:var(--white);">DPD</span></div>
+          <div class="list-row" style="cursor:default;"><span style="color:var(--muted);font-size:13px;width:90px;flex-shrink:0;">Arrived</span><span style="font-size:13px;font-weight:600;color:var(--white);">Today, 13:42</span></div>
+          <div class="list-row" style="cursor:default;"><span style="color:var(--muted);font-size:13px;width:90px;flex-shrink:0;">Condition</span><span class="badge badge-g">✓ Good</span></div>
+          <div class="list-row" style="cursor:default;border:none;"><span style="color:var(--muted);font-size:13px;width:90px;flex-shrink:0;">Insured</span><span style="font-size:14px;font-weight:800;color:var(--g);">£200</span></div>
+        </div>
+        <div style="background:var(--g-dim2);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;margin-bottom:18px;display:flex;gap:10px;align-items:center;">
+          <span style="font-size:18px;">📱</span>
+          <div style="font-size:13px;color:var(--white);">John has been notified. Confirmed collection <strong style="color:var(--g);">today before 8 PM</strong>.</div>
+        </div>
+        <button class="btn btn-g gap" onclick="nav('sc-handover')">📷 Scan Collection QR →</button>
+        <button class="btn btn-card btn-red">Report an issue</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SCAN
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-scan" style="background:#000;">
+      <div class="navbar" style="background:#000;">
+        <div class="back-btn" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.15);color:white;" onclick="back()">‹</div>
+        <div class="nav-title" style="color:white;">Scan Parcel</div>
+        <div class="nav-right"><span style="color:white;cursor:pointer;font-size:13px;">Torch 🔦</span></div>
+      </div>
+      <!-- Viewfinder -->
+      <div class="vf">
+        <div class="vf-grid"></div>
+        <div class="vf-corner vf-tl"></div>
+        <div class="vf-corner vf-tr"></div>
+        <div class="vf-corner vf-bl"></div>
+        <div class="vf-corner vf-br"></div>
+        <div class="vf-scan"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;color:rgba(255,255,255,0.35);font-size:13px;">Point at courier label barcode</div>
+        </div>
+      </div>
+      <div style="flex:1;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px;">
+        <div style="text-align:center;">
+          <div style="font-size:15px;color:rgba(255,255,255,0.75);margin-bottom:4px;">Hold steady over the barcode</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);">Detected automatically in real-time</div>
+        </div>
+        <button class="btn btn-g" style="max-width:280px;" onclick="haptic();nav('sc-scan-confirm')">✓ Simulate Successful Scan</button>
+        <div style="width:280px;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:8px;">Or enter tracking number manually</div>
+          <input class="input" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.1);color:white;" placeholder="e.g. DPD-JK8821X"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SCAN CONFIRM
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-scan-confirm">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Parcel confirmed</div></div>
+      <div class="scroll px pt">
+        <div style="text-align:center;padding:16px 0;">
+          <div class="success-ring" style="margin-bottom:12px;">📦</div>
+          <div style="font-size:12px;font-weight:700;color:var(--g);letter-spacing:0.08em;margin-bottom:6px;">BARCODE VERIFIED</div>
+          <div style="font-size:16px;font-weight:700;">Royal Mail · REF-RM9923X</div>
+        </div>
+        <div class="list-group gap">
+          <div class="list-row" style="cursor:default;"><span style="font-size:13px;color:var(--muted);width:90px;flex-shrink:0;">For</span><span style="font-size:13px;font-weight:600;color:var(--white);">Alex T. · No. 14</span></div>
+          <div class="list-row" style="cursor:default;"><span style="font-size:13px;color:var(--muted);width:90px;flex-shrink:0;">Value</span><span style="font-size:13px;font-weight:600;color:var(--white);">Under £50</span></div>
+          <div class="list-row" style="cursor:default;border:none;"><span style="font-size:13px;color:var(--muted);width:90px;flex-shrink:0;">Insurance</span><span style="font-size:14px;font-weight:700;color:var(--g);">✓ Active — £200</span></div>
+        </div>
+        <div class="sec-lbl">Condition photo</div>
+        <div class="photo-up gap" onclick="uploadPhoto(this,'📸 Good condition — photo saved')">
+          <span style="font-size:26px;">📸</span><span>Tap to photograph parcel condition</span>
+        </div>
+        <div style="background:var(--g-dim);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;margin-bottom:20px;font-size:13px;">
+          📱 <strong>Alex T.</strong> has been notified their parcel is safely with you.
+        </div>
+        <button class="btn btn-g" onclick="haptic();nav('sc-home-keeper')">✓ Confirm &amp; Return Home</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         HANDOVER (scan shopper QR)
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-handover">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">QR Handover</div></div>
+      <div class="scroll px pt">
+        <div style="text-align:center;margin-bottom:18px;">
+          <div style="font-size:13px;color:var(--muted);">Ask John to show you their</div>
+          <div style="font-size:18px;font-weight:800;">Neary Collection QR Code</div>
+        </div>
+        <!-- QR scanner viewfinder -->
+        <div style="width:220px;height:220px;margin:0 auto 18px;position:relative;background:rgba(255,255,255,0.03);border-radius:var(--r);overflow:hidden;border:1px solid var(--border);">
+          <div style="position:absolute;top:12px;left:12px;width:24px;height:24px;border-top:3px solid var(--g);border-left:3px solid var(--g);border-radius:2px;"></div>
+          <div style="position:absolute;top:12px;right:12px;width:24px;height:24px;border-top:3px solid var(--g);border-right:3px solid var(--g);border-radius:2px;"></div>
+          <div style="position:absolute;bottom:12px;left:12px;width:24px;height:24px;border-bottom:3px solid var(--g);border-left:3px solid var(--g);border-radius:2px;"></div>
+          <div style="position:absolute;bottom:12px;right:12px;width:24px;height:24px;border-bottom:3px solid var(--g);border-right:3px solid var(--g);border-radius:2px;"></div>
+          <div style="position:absolute;left:16px;right:16px;height:2px;background:linear-gradient(90deg,transparent,var(--g),transparent);animation:scan 2s ease-in-out infinite;"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">Point at shopper's QR code</div>
+        </div>
+        <div style="background:var(--g-dim2);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;margin-bottom:20px;display:flex;gap:10px;align-items:center;">
+          <span style="font-size:18px;">🔐</span>
+          <div style="font-size:12px;color:var(--muted);line-height:1.55;">This one-time QR expires after use. Never hand over without scanning it first.</div>
+        </div>
+        <button class="btn btn-g" onclick="haptic();nav('sc-rate-tip')">✓ Simulate QR Scan — Complete</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         RATE + TIP
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-rate-tip">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px 24px;gap:0;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+        <div class="success-ring" style="margin-top:16px;">✅</div>
+        <h2 style="margin-bottom:8px;">Handover complete!</h2>
+        <p class="muted" style="text-align:center;margin-bottom:6px;font-size:14px;">John has their parcel. Your earning is in your wallet.</p>
+        <div style="font-size:28px;font-weight:800;color:var(--g);margin:12px 0;">+ Earned ✓</div>
+
+        <!-- Stars -->
+        <div style="width:100%;margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:600;text-align:center;margin-bottom:10px;">How was the handover?</div>
+          <div class="star-row" id="stars">
+            <span class="star lit" onclick="setStars(1)">★</span>
+            <span class="star lit" onclick="setStars(2)">★</span>
+            <span class="star lit" onclick="setStars(3)">★</span>
+            <span class="star lit" onclick="setStars(4)">★</span>
+            <span class="star lit" onclick="setStars(5)">★</span>
+          </div>
+        </div>
+
+        <!-- Tip received -->
+        <div style="width:100%;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.2);border-radius:var(--r);padding:16px;text-align:center;margin-bottom:20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--amber);letter-spacing:0.08em;margin-bottom:6px;">🎁 JOHN LEFT A TIP</div>
+          <div style="font-size:34px;font-weight:800;color:var(--amber);">£1.00</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px;">100% goes to you — instantly</div>
+        </div>
+        <button class="btn btn-g" style="width:100%;" onclick="nav('sc-home-keeper')">Back to Dashboard</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         WALLET
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-wallet">
+      <div style="padding:12px 16px 6px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+        <h2>Wallet</h2><span class="badge badge-g">⚡ Stripe</span>
+      </div>
+      <div class="scroll px">
+        <div class="wallet-hero pt">
+          <div style="font-size:12px;color:var(--muted);letter-spacing:0.07em;margin-bottom:8px;">AVAILABLE BALANCE</div>
+          <div class="wallet-bal">£23.60</div>
+          <div class="wallet-sub">Updated just now</div>
+          <button class="btn btn-g btn-sm" style="margin-top:16px;padding:12px 32px;" onclick="nav('sc-withdraw')">Withdraw →</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val" style="color:var(--g);">£87.40</div><div class="stat-lbl">Total earned</div></div>
+          <div class="stat-card"><div class="stat-val" style="color:var(--amber);">£3.50</div><div class="stat-lbl">Tips received</div></div>
+        </div>
+        <div class="sec-lbl">Transactions</div>
+        <div class="card card-p gap">
+          <div class="tx-row"><div class="tx-left"><div class="tx-ico">📦</div><div><div class="tx-name">DPD · John S.</div><div class="tx-date">Today, 16:05</div></div></div><div class="tx-pos">+ Earned</div></div>
+          <div class="tx-row"><div class="tx-left"><div class="tx-ico">🎁</div><div><div class="tx-name">Tip from John</div><div class="tx-date">Today, 16:05</div></div></div><div class="tx-pos" style="color:var(--amber);">+£1.00</div></div>
+          <div class="tx-row"><div class="tx-left"><div class="tx-ico">📦</div><div><div class="tx-name">Evri · Maria L.</div><div class="tx-date">Today, 14:30</div></div></div><div class="tx-pos">+ Earned</div></div>
+          <div class="tx-row"><div class="tx-left"><div class="tx-ico">📤</div><div><div class="tx-name">Withdrawal</div><div class="tx-date">Yesterday, 18:00</div></div></div><div class="tx-neg">-£20.00</div></div>
+          <div class="tx-row" style="border:none;"><div class="tx-left"><div class="tx-ico">📦</div><div><div class="tx-name">Amazon · Fatima</div><div class="tx-date">Yesterday, 09:45</div></div></div><div class="tx-pos">+ Earned</div></div>
+        </div>
+        <div style="height:var(--safe-bottom)"></div>
+      </div>
+      <div id="tab-bar-wallet" class="tab-bar-inst"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         WITHDRAW
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-withdraw">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Withdraw</div></div>
+      <div class="scroll px pt">
+        <div style="text-align:center;margin-bottom:8px;">
+          <div style="font-size:12px;color:var(--muted);letter-spacing:0.07em;">AMOUNT TO WITHDRAW</div>
+          <div class="amount-disp" id="wd-amt">£20.00</div>
+          <div style="font-size:12px;color:var(--muted);">Available: £23.60 · Min: £10</div>
+        </div>
+        <div class="numpad gap" style="margin-top:8px;">
+          <div class="num-key" onclick="numpad('1')">1</div><div class="num-key" onclick="numpad('2')">2</div><div class="num-key" onclick="numpad('3')">3</div>
+          <div class="num-key" onclick="numpad('4')">4</div><div class="num-key" onclick="numpad('5')">5</div><div class="num-key" onclick="numpad('6')">6</div>
+          <div class="num-key" onclick="numpad('7')">7</div><div class="num-key" onclick="numpad('8')">8</div><div class="num-key" onclick="numpad('9')">9</div>
+          <div class="num-key" onclick="numpad('.')">.</div><div class="num-key" onclick="numpad('0')">0</div><div class="num-key" onclick="numpad('del')">⌫</div>
+        </div>
+        <div class="list-group gap">
+          <div class="list-row" style="cursor:default;"><span style="font-size:13px;color:var(--muted);">To account</span><span style="margin-left:auto;font-size:13px;font-weight:600;">••••4821</span></div>
+          <div class="list-row" style="cursor:default;border:none;"><span style="font-size:13px;color:var(--muted);">Arrival</span><span style="margin-left:auto;font-size:13px;font-weight:700;color:var(--g);">Instant via Stripe</span></div>
+        </div>
+        <button class="btn btn-g" onclick="haptic();nav('sc-wd-success')">Withdraw Now →</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         WITHDRAW SUCCESS
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-wd-success">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+        <div class="success-ring">💸</div>
+        <h2 style="margin-bottom:8px;">Money sent!</h2>
+        <p class="muted" style="margin-bottom:24px;font-size:14px;">£20.00 is on its way to your bank account ••••4821. Stripe instant payouts typically arrive within seconds.</p>
+        <div style="background:var(--g-dim);border:1px solid var(--border);border-radius:var(--r);padding:16px;width:100%;margin-bottom:24px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:0.06em;">REFERENCE</div>
+          <div style="font-family:monospace;color:var(--g);font-size:14px;">NRY-WD-20260421-001</div>
+        </div>
+        <button class="btn btn-g" onclick="back()">Back to Wallet</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         PROFILE
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-profile">
+      <div style="padding:12px 16px 6px;flex-shrink:0;"><h2>Profile</h2></div>
+      <div class="scroll px">
+        <!-- Avatar -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-top:10px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--bg);">SJ</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;">Sarah Johnson</div>
+            <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <span class="badge badge-g">🏅 Founder · E1</span>
+              <span class="badge badge-amber">4.9 ★ Gold</span>
+            </div>
+          </div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val">47</div><div class="stat-lbl">Total parcels</div></div>
+          <div class="stat-card"><div class="stat-val" style="color:var(--g);">£87.40</div><div class="stat-lbl">Total earned</div></div>
+          <div class="stat-card"><div class="stat-val" style="color:var(--amber);">4.9 ★</div><div class="stat-lbl">Rating</div></div>
+          <div class="stat-card"><div class="stat-val">3</div><div class="stat-lbl">Referred</div></div>
+        </div>
+        <div class="list-group gap">
+          <div class="list-row" onclick="nav('sc-earnings')"><div class="list-ico">📊</div><div class="list-main"><div class="list-title">Earnings breakdown</div></div><div class="chevron">›</div></div>
+          <div class="list-row" onclick="nav('sc-refer')"><div class="list-ico">🎁</div><div class="list-main"><div class="list-title">Refer a friend</div></div><div class="chevron">›</div></div>
+          <div class="list-row" onclick="nav('sc-notifications')"><div class="list-ico">🔔</div><div class="list-main"><div class="list-title">Notifications</div><div class="list-sub">2 unread</div></div><div class="chevron">›</div></div>
+          <div class="list-row"><div class="list-ico">⚙️</div><div class="list-main"><div class="list-title">Settings</div></div><div class="chevron">›</div></div>
+          <div class="list-row" style="border:none;" onclick="nav('sc-help')"><div class="list-ico">💬</div><div class="list-main"><div class="list-title">Help &amp; Support</div></div><div class="chevron">›</div></div>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px;">Neary.co v1.0.0</div>
+        <button class="btn btn-card btn-red" style="font-size:14px;" onclick="nav('sc-splash')">Sign out</button>
+        <div style="height:var(--safe-bottom)"></div>
+      </div>
+      <div id="tab-bar-profile" class="tab-bar-inst"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         EARNINGS
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-earnings">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Earnings</div></div>
+      <div class="scroll px pt">
+        <div class="segment">
+          <button class="seg-btn on">This week</button>
+          <button class="seg-btn">This month</button>
+          <button class="seg-btn">All time</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val" style="color:var(--g);">£23.60</div><div class="stat-lbl">Total earned</div></div>
+          <div class="stat-card"><div class="stat-val">18</div><div class="stat-lbl">Parcels held</div></div>
+          <div class="stat-card"><div class="stat-val" style="color:var(--amber);">£1.50</div><div class="stat-lbl">Tips</div></div>
+          <div class="stat-card"><div class="stat-val" style="color:var(--g);">4.9 ★</div><div class="stat-lbl">Avg rating</div></div>
+        </div>
+        <div class="sec-lbl">Daily earnings this week</div>
+        <div class="card card-p gap">
+          <div class="bar-chart">
+            <div class="bar-wrap"><div class="bar-fill" style="height:40%;background:rgba(62,186,110,0.35);"></div><div class="bar-lbl">Mon</div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="height:70%;background:rgba(62,186,110,0.5);"></div><div class="bar-lbl">Tue</div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="height:55%;background:rgba(62,186,110,0.45);"></div><div class="bar-lbl">Wed</div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="height:90%;background:var(--g);"></div><div class="bar-lbl">Thu</div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="height:45%;background:rgba(62,186,110,0.4);"></div><div class="bar-lbl">Fri</div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="height:80%;background:rgba(62,186,110,0.6);"></div><div class="bar-lbl">Sat</div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="height:25%;background:rgba(62,186,110,0.25);"></div><div class="bar-lbl">Sun</div></div>
+          </div>
+        </div>
+        <div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.2);border-radius:var(--r);padding:14px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;">
+          <span style="font-size:18px;">🏅</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:3px;">Founder Bonus Active</div>
+            <div style="font-size:12px;color:var(--muted);">You're earning higher rates. Bonus ends in 5 months 14 days.</div>
+          </div>
+        </div>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         REFER A FRIEND
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-refer">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Refer a Friend</div></div>
+      <div class="scroll px pt">
+        <div class="refer-card">
+          <div style="font-size:36px;margin-bottom:8px;">🎁</div>
+          <h3 style="margin-bottom:6px;">Build your street's network</h3>
+          <p class="muted" style="font-size:13px;">E1 6RF has <strong style="color:var(--g);">4 Keepers</strong>. You need 6 more for full street coverage. Share your code to complete it.</p>
+          <!-- Street progress -->
+          <div style="margin-top:14px;margin-bottom:4px;">
+            <div class="prog-track"><div class="prog-fill" style="width:40%;"></div></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);">4 / 10 Keepers on your street</div>
+        </div>
+        <div class="sec-lbl">Your referral code</div>
+        <div class="refer-code" id="ref-code" onclick="copyRef()">SARAH-K47X</div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px;">Tap to copy</div>
+        <div style="display:flex;gap:10px;margin-bottom:24px;">
+          <button class="btn btn-g" style="flex:1;font-size:14px;background:#25D366;" onclick="shareWA()">💬 WhatsApp</button>
+          <button class="btn btn-card" style="flex:1;font-size:14px;" onclick="copyRef()">🔗 Copy Link</button>
+        </div>
+        <div class="sec-lbl">Your referrals (3)</div>
+        <div class="list-group">
+          <div class="list-row" style="cursor:default;"><div class="list-ico">🏡</div><div class="list-main"><div class="list-title">James T.</div><div class="list-sub">Joined 3 days ago · 12 parcels</div></div><span class="badge badge-g">Active</span></div>
+          <div class="list-row" style="cursor:default;"><div class="list-ico">🏡</div><div class="list-main"><div class="list-title">Maria L.</div><div class="list-sub">Joined 1 week ago · 8 parcels</div></div><span class="badge badge-g">Active</span></div>
+          <div class="list-row" style="cursor:default;border:none;"><div class="list-ico">🏡</div><div class="list-main"><div class="list-title">Derek W.</div><div class="list-sub">Joined 2 weeks ago · 31 parcels</div></div><span class="badge badge-amber">Gold</span></div>
+        </div>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         NOTIFICATIONS
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-notifications">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Notifications</div></div>
+      <div class="scroll px pt">
+        <div class="notif-row"><div class="notif-dot"></div><div><div class="notif-title">🚚 Parcel incoming!</div><div class="notif-body">Royal Mail driver is 5 stops away. Are you ready to receive?</div><div class="notif-time">2 min ago</div></div></div>
+        <div class="notif-row"><div class="notif-dot"></div><div><div class="notif-title">💰 Earning released</div><div class="notif-body">John S. collected their parcel. Your earning has been added to your Neary Wallet.</div><div class="notif-time">1h ago</div></div></div>
+        <div class="notif-row"><div class="notif-dot read"></div><div><div class="notif-title">🎁 Tip received!</div><div class="notif-body">John left you a £1.00 tip. Added to your wallet instantly.</div><div class="notif-time">1h ago</div></div></div>
+        <div class="notif-row"><div class="notif-dot read"></div><div><div class="notif-title">⭐ New review!</div><div class="notif-body">Maria L. gave you 5 stars — "So helpful, would use again!"</div><div class="notif-time">Yesterday</div></div></div>
+        <div class="notif-row" style="border:none;"><div class="notif-dot read"></div><div><div class="notif-title">🏅 Founder bonus active</div><div class="notif-body">You're one of Neary.co's first 500 Keepers. Higher earnings for 6 months!</div><div class="notif-time">3 days ago</div></div></div>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         HELP
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-help">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Help &amp; Support</div></div>
+      <div class="scroll px pt">
+        <div class="sec-lbl">Quick answers</div>
+        <div class="list-group gap" id="faq-list">
+          <div class="list-row" onclick="toggleFaq(this,'What if the shopper doesn\'t collect?','After 24h a small late fee applies and the shopper gets an urgent reminder. After 7 days, Neary initiates a secure return. You are not liable.')"><div class="list-main"><div class="list-title">What if the shopper doesn't collect?</div></div><div class="chevron">+</div></div>
+          <div class="list-row" onclick="toggleFaq(this,'How am I insured?','Every parcel is insured up to £200 from the moment you scan it in — at zero cost to you. Funded from Neary\'s service fee margin.')"><div class="list-main"><div class="list-title">How am I insured?</div></div><div class="chevron">+</div></div>
+          <div class="list-row" onclick="toggleFaq(this,'Can I go Active while asleep?','No — toggle yourself Away before sleeping. The app will not receive new parcel requests while Away, but existing held parcels remain your responsibility.')"><div class="list-main"><div class="list-title">Can I go Active while asleep?</div></div><div class="chevron">+</div></div>
+          <div class="list-row" style="border:none;" onclick="toggleFaq(this,'How do I upgrade to Gold Keeper?','Complete a Basic DBS check — we guide you through the process in-app. Gold Keepers accept high-value parcels and earn higher per-parcel rates.')"><div class="list-main"><div class="list-title">How do I upgrade to Gold Keeper?</div></div><div class="chevron">+</div></div>
+        </div>
+        <div class="sec-lbl">Contact us</div>
+        <div class="list-group">
+          <div class="list-row"><div class="list-ico">💬</div><div class="list-main"><div class="list-title">Live chat</div></div><span class="badge badge-g">Online</span></div>
+          <div class="list-row" style="border:none;"><div class="list-ico">📧</div><div class="list-main"><div class="list-title">hello@neary.co</div></div><div class="chevron">›</div></div>
+        </div>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SHOPPER HOME
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-shopper-home">
+      <div class="scroll">
+        <div class="px pt">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div style="font-size:13px;color:var(--muted);">Good morning 👋</div>
+              <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;">Alex T.</div>
+            </div>
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;cursor:pointer;" onclick="nav('sc-shopper-profile')">AT</div>
+          </div>
+
+          <!-- Find Keeper hero -->
+          <div style="background:linear-gradient(135deg,rgba(74,158,255,0.18) 0%,rgba(74,158,255,0.05) 100%);border:1px solid rgba(74,158,255,0.2);border-radius:18px;padding:18px;margin-bottom:14px;cursor:pointer;" onclick="nav('sc-find-keeper')">
+            <div style="font-size:12px;color:var(--blue);font-weight:700;letter-spacing:0.05em;margin-bottom:6px;">NEAREST KEEPER</div>
+            <div style="font-size:17px;font-weight:800;margin-bottom:2px;">Sarah M. · 32m away</div>
+            <div style="font-size:12px;color:var(--muted);">4.9 ★ Gold Keeper · Available until 21:00</div>
+            <div style="margin-top:12px;display:inline-block;background:var(--blue);color:white;padding:8px 16px;border-radius:var(--r-sm);font-size:13px;font-weight:700;">View all Keepers nearby →</div>
+          </div>
+
+          <!-- Active delivery -->
+          <div class="sec-lbl">MY DELIVERIES</div>
+          <div class="list-group gap">
+            <div class="parcel-row" onclick="nav('sc-shopper-tracking')">
+              <div class="p-ico" style="background:rgba(74,158,255,0.12);">🚚</div>
+              <div style="flex:1;">
+                <div class="p-name">Amazon · With Sarah M.</div>
+                <div class="p-sub">Arrived 13:42 · Ready to collect</div>
+              </div>
+              <span class="badge badge-blue">Ready</span>
+            </div>
+            <div class="parcel-row" onclick="nav('sc-shopper-tracking')">
+              <div class="p-ico" style="background:rgba(74,158,255,0.08);">📍</div>
+              <div style="flex:1;">
+                <div class="p-name">ASOS · Out for delivery</div>
+                <div class="p-sub">ETA 3:30–5:30 PM today · Via Sarah M.</div>
+              </div>
+              <span class="badge badge-muted">En route</span>
+            </div>
+          </div>
+
+          <!-- Add delivery -->
+          <div style="border:2px dashed var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:14px;" onclick="nav('sc-link-tracking')">
+            <div style="width:38px;height:38px;border-radius:var(--r-sm);background:var(--g-dim);display:flex;align-items:center;justify-content:center;font-size:20px;">+</div>
+            <div>
+              <div style="font-size:14px;font-weight:600;">Add a delivery</div>
+              <div style="font-size:12px;color:var(--muted);">Link a tracking number to a Keeper</div>
+            </div>
+          </div>
+
+          <div class="sec-lbl">RECENTLY COLLECTED</div>
+          <div class="list-group">
+            <div class="parcel-row" style="opacity:0.6;border:none;">
+              <div class="p-ico" style="background:rgba(106,143,168,0.1);">✅</div>
+              <div style="flex:1;"><div class="p-name">Royal Mail · Yesterday</div><div class="p-sub">Collected from Sarah M. · ★★★★★</div></div>
+              <span class="badge badge-muted">Done</span>
+            </div>
+          </div>
+        </div>
+        <div style="height:var(--safe-bottom)"></div>
+      </div>
+      <div id="tab-bar-sh" class="tab-bar-inst shopper-tabs"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         FIND KEEPER (map)
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-find-keeper">
+      <div class="navbar">
+        <div class="back-btn" onclick="back()">‹</div>
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--muted);letter-spacing:0.05em;">YOUR POSTCODE</div>
+          <div style="font-size:16px;font-weight:800;">E1 6RF</div>
+        </div>
+        <span class="badge badge-g">4 nearby</span>
+      </div>
+      <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <!-- Map -->
+        <div class="map-mock" style="border-radius:0;height:210px;flex-shrink:0;">
+          <div class="map-grid"></div>
+          <div class="map-road-h"></div>
+          <div class="map-road-v"></div>
+          <div style="position:absolute;left:62%;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.04);"></div>
+          <div class="map-you"></div>
+          <div class="map-pin" id="pin-sarah" style="top:26%;left:24%;background:var(--g);" onclick="selKeeper('sarah')">🏡</div>
+          <div class="map-pin" id="pin-james" style="top:55%;left:58%;background:var(--card2);" onclick="selKeeper('james')">🏡</div>
+          <div class="map-pin" id="pin-priya" style="top:20%;left:66%;background:var(--card2);" onclick="selKeeper('priya')">🏡</div>
+          <div class="map-pin" id="pin-derek" style="top:66%;left:30%;background:var(--card2);" onclick="selKeeper('derek')">🏡</div>
+        </div>
+        <!-- Keeper list -->
+        <div class="scroll px" style="padding-top:14px;">
+          <div class="sec-lbl">KEEPERS NEAR YOU</div>
+          <div class="list-group">
+            <div class="list-row" onclick="nav('sc-keeper-profile')" id="row-sarah">
+              <div class="list-ico" style="background:var(--g-dim);">👩</div>
+              <div class="list-main"><div class="list-title">Sarah M. · 32m away</div><div class="list-sub">4.9 ★ Gold · Available until 21:00 · 3 parcels held</div></div>
+              <span class="badge badge-g">Active</span>
+            </div>
+            <div class="list-row" onclick="nav('sc-keeper-profile')">
+              <div class="list-ico" style="background:var(--g-dim);">👨</div>
+              <div class="list-main"><div class="list-title">James T. · 48m away</div><div class="list-sub">4.7 ★ Standard · Available until 18:30</div></div>
+              <span class="badge badge-g">Active</span>
+            </div>
+            <div class="list-row" style="opacity:0.5;" onclick="nav('sc-keeper-profile')">
+              <div class="list-ico">🧑</div>
+              <div class="list-main"><div class="list-title">Priya K. · 54m away</div><div class="list-sub">4.8 ★ Gold · Away until later</div></div>
+              <span class="badge badge-muted">Away</span>
+            </div>
+            <div class="list-row" style="border:none;" onclick="nav('sc-keeper-profile')">
+              <div class="list-ico" style="background:var(--g-dim);">👴</div>
+              <div class="list-main"><div class="list-title">Derek W. · 71m away</div><div class="list-sub">4.8 ★ Gold · Available all day</div></div>
+              <span class="badge badge-g">Active</span>
+            </div>
+          </div>
+          <div style="height:var(--safe-bottom)"></div>
+        </div>
+      </div>
+      <div id="tab-bar-fk" class="tab-bar-inst shopper-tabs"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         KEEPER PROFILE (shopper view)
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-keeper-profile">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Keeper Profile</div></div>
+      <div class="scroll px pt">
+        <!-- Keeper hero -->
+        <div class="card card-p" style="text-align:center;margin-bottom:14px;padding:22px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:var(--g-dim);border:2px solid var(--g);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px;">👩</div>
+          <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Sarah M.</div>
+          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+            <span class="badge badge-g">🏅 Gold Keeper</span>
+            <span class="badge badge-amber">4.9 ★ Excellent</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted);">32m from your address · E1 6RE</div>
+        </div>
+        <div class="list-group gap">
+          <div class="list-row" style="cursor:default;"><span style="font-size:13px;color:var(--muted);width:100px;flex-shrink:0;">Available</span><span style="font-size:13px;font-weight:600;color:var(--white);">Until 21:00 today</span></div>
+          <div class="list-row" style="cursor:default;"><span style="font-size:13px;color:var(--muted);width:100px;flex-shrink:0;">Max parcels</span><span style="font-size:13px;font-weight:600;color:var(--white);">Up to 5 at once</span></div>
+          <div class="list-row" style="cursor:default;"><span style="font-size:13px;color:var(--muted);width:100px;flex-shrink:0;">Total parcels</span><span style="font-size:13px;font-weight:600;color:var(--white);">47 held · 0 issues</span></div>
+          <div class="list-row" style="cursor:default;border:none;"><span style="font-size:13px;color:var(--muted);width:100px;flex-shrink:0;">Insurance</span><span style="font-size:14px;font-weight:700;color:var(--g);">✓ £200 covered</span></div>
+        </div>
+        <div class="sec-lbl">Recent reviews</div>
+        <div class="card card-p gap">
+          <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid var(--border);">
+            <div style="display:flex;gap:2px;margin-bottom:4px;font-size:13px;color:var(--amber);">★★★★★</div>
+            <div style="font-size:13px;color:var(--white);">"So helpful and friendly — really puts you at ease!"</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;">Maria L. · 2 days ago</div>
+          </div>
+          <div>
+            <div style="display:flex;gap:2px;margin-bottom:4px;font-size:13px;color:var(--amber);">★★★★★</div>
+            <div style="font-size:13px;color:var(--white);">"Parcel was perfectly safe. Would definitely use again."</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;">Alex T. · 5 days ago</div>
+          </div>
+        </div>
+        <button class="btn btn-g gap" onclick="nav('sc-link-tracking')">Use Sarah as my Keeper →</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         LINK TRACKING NUMBER
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-link-tracking">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Add Delivery</div></div>
+      <div class="scroll px pt">
+        <div class="segment">
+          <button class="seg-btn on" id="tab-manual" onclick="linkTab('manual')">Manual link</button>
+          <button class="seg-btn" id="tab-divert" onclick="linkTab('divert')">In-flight divert</button>
+        </div>
+        <!-- Keeper selected -->
+        <div style="background:var(--g-dim);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:18px;">👩</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Sarah M. selected</div><div style="font-size:11px;color:var(--muted);">4.9 ★ Gold · 32m away · Active now</div></div>
+          <span style="color:var(--g);font-size:12px;cursor:pointer;" onclick="nav('sc-find-keeper')">Change</span>
+        </div>
+
+        <div id="panel-manual">
+          <p class="muted gap" style="font-size:13px;">Already have a tracking number? Paste it below and Neary will monitor it and alert Sarah when it's on the way.</p>
+          <div class="input-grp"><div class="input-lbl">Tracking number</div><input class="input" placeholder="e.g. DPD-JK8821X" value="RM-992334AX"/></div>
+          <div class="input-grp"><div class="input-lbl">Courier</div>
+            <select class="input"><option>Royal Mail</option><option>DPD</option><option>Evri</option><option>Amazon</option><option>Yodel</option><option>DHL</option></select>
+          </div>
+          <div class="sec-lbl">Your Neary delivery address</div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;margin-bottom:8px;font-family:monospace;font-size:13px;line-height:1.7;color:var(--white);">
+            Alex Thompson (Ref: NEARY)<br/>
+            c/o Sarah M. — Neary Hub<br/>
+            [Sarah's address shown after booking]<br/>
+            London, E1 6RE
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Use this address at checkout instead of your home address.</div>
+          <button class="btn btn-g" onclick="nav('sc-shopper-tracking')">Link this delivery →</button>
+        </div>
+
+        <div id="panel-divert" style="display:none;">
+          <p class="muted gap" style="font-size:13px;">Already ordered to your home? Enter your tracking number and Neary will redirect it to Sarah using the courier's own divert service.</p>
+          <div class="input-grp"><div class="input-lbl">Tracking number</div><input class="input" placeholder="e.g. DPD-JK8821X"/></div>
+          <div class="card card-p gap" style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-size:18px;">💡</span>
+            <div style="font-size:12px;color:var(--muted);line-height:1.55;">Neary will send you a one-tap deep link to the courier's app with Sarah's address pre-filled. You just tap Confirm.</div>
+          </div>
+          <button class="btn btn-g" onclick="nav('sc-shopper-tracking')">Set up divert →</button>
+        </div>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SHOPPER LIVE TRACKING
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-shopper-tracking">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Live Tracking</div></div>
+      <div class="scroll px pt">
+        <!-- Parcel header -->
+        <div class="card card-p" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div style="width:42px;height:42px;border-radius:var(--r-sm);background:rgba(74,158,255,0.12);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>
+          <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Amazon Parcel</div><div style="font-size:12px;color:var(--muted);">RM-992334AX · Via Sarah M.</div></div>
+          <span class="badge badge-blue">Ready</span>
+        </div>
+
+        <!-- Timeline -->
+        <div class="sec-lbl">Delivery status</div>
+        <div class="timeline card card-p gap">
+          <div class="tl-row">
+            <div class="tl-dot-wrap"><div class="tl-dot done"></div><div class="tl-line done"></div></div>
+            <div class="tl-text"><div class="tl-label">Order placed</div><div class="tl-sub">Yesterday, 09:12</div></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot-wrap"><div class="tl-dot done"></div><div class="tl-line done"></div></div>
+            <div class="tl-text"><div class="tl-label">Out for delivery</div><div class="tl-sub">Today, 10:30</div></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot-wrap"><div class="tl-dot done"></div><div class="tl-line done"></div></div>
+            <div class="tl-text"><div class="tl-label">Diverted to Sarah M.</div><div class="tl-sub">Today, 13:40 · Neary smart divert</div></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot-wrap"><div class="tl-dot now"></div><div class="tl-line"></div></div>
+            <div class="tl-text"><div class="tl-label" style="color:var(--g);">With Sarah M. ✓</div><div class="tl-sub">Arrived 13:42 · Insured · Photo taken</div></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot-wrap"><div class="tl-dot wait"></div></div>
+            <div class="tl-text" style="padding-bottom:0;"><div class="tl-label" style="color:var(--muted);">You collect</div><div class="tl-sub">When ready · Show QR to Sarah</div></div>
+          </div>
+        </div>
+
+        <!-- Sarah info -->
+        <div class="list-group gap">
+          <div class="list-row" style="cursor:default;"><div class="list-ico">👩</div><div class="list-main"><div class="list-title">Sarah M. · No. 8 Whitfield St</div><div class="list-sub">Available until 21:00 · 32m walk</div></div><span class="badge badge-g">Active</span></div>
+          <div class="list-row" style="cursor:default;border:none;"><span style="font-size:13px;color:var(--muted);">Parcel insured</span><span style="margin-left:auto;font-size:13px;font-weight:700;color:var(--g);">✓ £200</span></div>
+        </div>
+
+        <button class="btn btn-g" onclick="haptic();nav('sc-shopper-qr')">📱 Show Collection QR →</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+      <div id="tab-bar-st" class="tab-bar-inst shopper-tabs"></div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SHOPPER QR CODE
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-shopper-qr">
+      <div class="navbar"><div class="back-btn" onclick="back()">‹</div><div class="nav-title">Collection QR</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:20px 24px;gap:0;">
+        <div style="font-size:14px;color:var(--muted);text-align:center;margin-bottom:6px;">Show this to Sarah to collect your parcel</div>
+        <div style="font-size:18px;font-weight:800;text-align:center;margin-bottom:20px;">Your Neary Collection Code</div>
+        <!-- QR Code (CSS-generated pattern) -->
+        <div style="background:white;padding:14px;border-radius:16px;margin-bottom:18px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+          <div style="width:160px;height:160px;display:grid;grid-template-columns:repeat(7,1fr);gap:2.5px;">
+            <!-- Row 1 -->
+            <div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div>
+            <div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:transparent;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div>
+            <div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div>
+            <div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div>
+            <div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div>
+            <div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:transparent;"></div>
+            <div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:transparent;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div><div style="background:#0C1824;border-radius:1px;"></div>
+          </div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 16px;margin-bottom:6px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">CODE</div>
+          <div style="font-family:monospace;font-size:16px;font-weight:700;color:var(--g);letter-spacing:0.12em;">NRY-QR-A7K2P9</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px;">One-time use · Expires after handover</div>
+        <div style="background:var(--g-dim2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;text-align:center;margin-bottom:20px;">
+          <div style="font-size:12px;color:var(--muted);">🔐 Show this screen to Sarah. She will scan it on her phone to release your parcel. Do not share this code with anyone else.</div>
+        </div>
+        <button class="btn btn-g" onclick="haptic();nav('sc-shopper-collected')">✓ Simulate — Sarah scanned it</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SHOPPER: COLLECTED + RATE
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-shopper-collected">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+        <div class="success-ring" style="margin-top:20px;">✅</div>
+        <h2 style="margin-bottom:8px;">Got your parcel!</h2>
+        <p class="muted" style="text-align:center;margin-bottom:20px;font-size:14px;">Collection confirmed from Sarah M. Your parcel is now with you safely.</p>
+
+        <!-- Rate Sarah -->
+        <div style="width:100%;margin-bottom:18px;">
+          <div style="font-size:15px;font-weight:700;text-align:center;margin-bottom:10px;">Rate your Keeper, Sarah M.</div>
+          <div class="star-row" id="shopper-stars">
+            <span class="star lit" onclick="setShopperStars(1)">★</span>
+            <span class="star lit" onclick="setShopperStars(2)">★</span>
+            <span class="star lit" onclick="setShopperStars(3)">★</span>
+            <span class="star lit" onclick="setShopperStars(4)">★</span>
+            <span class="star lit" onclick="setShopperStars(5)">★</span>
+          </div>
+        </div>
+
+        <!-- Tip -->
+        <div style="width:100%;margin-bottom:20px;">
+          <div style="font-size:14px;font-weight:600;text-align:center;margin-bottom:10px;">Leave a tip? <span style="font-size:12px;color:var(--muted);">(100% goes to Sarah)</span></div>
+          <div class="tip-row">
+            <button class="tip-btn" onclick="selTip(this,'0')">No tip</button>
+            <button class="tip-btn" onclick="selTip(this,'0.50')">£0.50</button>
+            <button class="tip-btn sel" onclick="selTip(this,'1.00')">£1.00</button>
+            <button class="tip-btn" onclick="selTip(this,'2.00')">£2.00</button>
+          </div>
+        </div>
+        <button class="btn btn-g" style="width:100%;margin-bottom:12px;" onclick="haptic();nav('sc-shopper-home')">Submit rating &amp; go home</button>
+        <button class="btn btn-card btn-sm" style="font-size:13px;" onclick="nav('sc-refer-sh')">Invite a neighbour to Neary.co 🎁</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         SHOPPER PROFILE
+         ════════════════════════════════ -->
+    <div class="screen hidden" id="sc-shopper-profile">
+      <div style="padding:12px 16px 6px;flex-shrink:0;"><h2>My Profile</h2></div>
+      <div class="scroll px pt">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <div style="width:60px;height:60px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;">AT</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;">Alex Thompson</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px;">Shopper · E1 6RF</div>
+          </div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val">12</div><div class="stat-lbl">Deliveries</div></div>
+          <div class="stat-card"><div class="stat-val" style="color:var(--amber);">£4.50</div><div class="stat-lbl">Tips given</div></div>
+        </div>
+        <div class="sec-lbl">Favourite Keeper</div>
+        <div class="list-group gap">
+          <div class="list-row" style="border:none;cursor:default;">
+            <div class="list-ico">👩</div>
+            <div class="list-main"><div class="list-title">Sarah M.</div><div class="list-sub">4.9 ★ · Used 8 times</div></div>
+            <span class="badge badge-g">Favourite</span>
+          </div>
+        </div>
+        <div class="list-group gap">
+          <div class="list-row" onclick="nav('sc-notifications')"><div class="list-ico">🔔</div><div class="list-main"><div class="list-title">Notifications</div></div><div class="chevron">›</div></div>
+          <div class="list-row" style="border:none;"><div class="list-ico">⚙️</div><div class="list-main"><div class="list-title">Settings</div></div><div class="chevron">›</div></div>
+        </div>
+        <button class="btn btn-card btn-red" style="font-size:14px;" onclick="nav('sc-splash')">Sign out</button>
+        <div style="height:calc(24px + var(--safe-bottom))"></div>
+      </div>
+      <div id="tab-bar-sp" class="tab-bar-inst shopper-tabs"></div>
+    </div>
+
+  </div><!-- /screen-root -->
+
+  <!-- TAB BAR (rendered by JS) -->
+  <div id="main-tab-bar" style="display:none;">
+    <div class="tab-bar">
+      <div class="tab" id="mt-home" onclick="switchKeeperTab('sc-home-keeper','mt-home')"><div class="tab-icon">🏠</div><div class="tab-lbl">Home</div></div>
+      <div class="tab" id="mt-parcels" onclick="switchKeeperTab('sc-parcels','mt-parcels')"><div class="tab-icon">📦</div><div class="tab-lbl">Parcels</div></div>
+      <div class="tab" id="mt-scan" onclick="nav('sc-scan')"><div class="tab-icon">📷</div><div class="tab-lbl">Scan</div></div>
+      <div class="tab" id="mt-wallet" onclick="switchKeeperTab('sc-wallet','mt-wallet')"><div class="tab-icon">💳</div><div class="tab-lbl">Wallet</div></div>
+      <div class="tab" id="mt-profile" onclick="switchKeeperTab('sc-profile','mt-profile')"><div class="tab-icon">👤</div><div class="tab-lbl">Profile</div></div>
+    </div>
+  </div>
+
+  <div id="shopper-tab-bar" style="display:none;">
+    <div class="tab-bar">
+      <div class="tab" id="st-home" onclick="switchShopperTab('sc-shopper-home','st-home')"><div class="tab-icon">🏠</div><div class="tab-lbl">Home</div></div>
+      <div class="tab" id="st-deliveries" onclick="switchShopperTab('sc-shopper-tracking','st-deliveries')"><div class="tab-icon">📦</div><div class="tab-lbl">Deliveries</div></div>
+      <div class="tab" id="st-map" onclick="switchShopperTab('sc-find-keeper','st-map')"><div class="tab-icon">🗺️</div><div class="tab-lbl">Find Keeper</div></div>
+      <div class="tab" id="st-profile" onclick="switchShopperTab('sc-shopper-profile','st-profile')"><div class="tab-icon">👤</div><div class="tab-lbl">Profile</div></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════
+let navStack = ['sc-splash'];
+let keeperTabActive = false;
+let shopperTabActive = false;
+const KEEPER_SCREENS = ['sc-home-keeper','sc-parcels','sc-wallet','sc-profile','sc-earnings','sc-refer','sc-notifications','sc-help','sc-parcel-detail','sc-handover','sc-rate-tip','sc-scan','sc-scan-confirm','sc-wd-success','sc-withdraw'];
+const SHOPPER_SCREENS = ['sc-shopper-home','sc-find-keeper','sc-keeper-profile','sc-link-tracking','sc-shopper-tracking','sc-shopper-qr','sc-shopper-collected','sc-shopper-profile'];
+
+function getEl(id){ return document.getElementById(id); }
+
+function nav(id) {
+  const cur = navStack[navStack.length - 1];
+  if (cur === id) return;
+
+  const curEl = getEl(cur);
+  const nxtEl = getEl(id);
+  if (!nxtEl) return;
+
+  // Mark current as prev (slide left)
+  curEl?.classList.remove('active');
+  curEl?.classList.add('prev');
+
+  // Bring next in from right
+  nxtEl.classList.remove('hidden','prev');
+  nxtEl.classList.add('active');
+  navStack.push(id);
+
+  // Tab bar management
+  const isKeeper = KEEPER_SCREENS.includes(id) || id === 'sc-approved';
+  const isShopper = SHOPPER_SCREENS.includes(id);
+  const isOnboard = !isKeeper && !isShopper;
+
+  if (id === 'sc-home-keeper' || id === 'sc-approved') {
+    keeperTabActive = true; shopperTabActive = false;
+    getEl('main-tab-bar').style.display = 'block';
+    getEl('shopper-tab-bar').style.display = 'none';
+    setKeeperTab('mt-home');
+  } else if (id === 'sc-shopper-home') {
+    shopperTabActive = true; keeperTabActive = false;
+    getEl('shopper-tab-bar').style.display = 'block';
+    getEl('main-tab-bar').style.display = 'none';
+    setShopperTab('st-home');
+  } else if (id === 'sc-splash') {
+    keeperTabActive = false; shopperTabActive = false;
+    getEl('main-tab-bar').style.display = 'none';
+    getEl('shopper-tab-bar').style.display = 'none';
+  }
+
+  // Hide status bar on scan (black screen)
+  getEl('statusbar').style.display = id === 'sc-scan' ? 'none' : 'flex';
+}
+
+function back() {
+  if (navStack.length < 2) return;
+  const cur = navStack.pop();
+  const prev = navStack[navStack.length - 1];
+  const curEl = getEl(cur);
+  const prevEl = getEl(prev);
+
+  curEl?.classList.remove('active');
+  curEl?.classList.add('hidden');
+  prevEl?.classList.remove('prev');
+  prevEl?.classList.add('active');
+  getEl('statusbar').style.display = 'flex';
+}
+
+// ═══════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════
+function setKeeperTab(id) {
+  document.querySelectorAll('#main-tab-bar .tab').forEach(t => t.classList.remove('on'));
+  getEl(id)?.classList.add('on');
+}
+function setShopperTab(id) {
+  document.querySelectorAll('#shopper-tab-bar .tab').forEach(t => t.classList.remove('on'));
+  getEl(id)?.classList.add('on');
+}
+function switchKeeperTab(screenId, tabId) {
+  const cur = navStack[navStack.length-1];
+  if (cur === screenId) return;
+  const curEl = getEl(cur);
+  curEl?.classList.remove('active');
+  curEl?.classList.add('prev');
+  const nxt = getEl(screenId);
+  nxt?.classList.remove('hidden','prev');
+  nxt?.classList.add('active');
+  navStack.push(screenId);
+  setKeeperTab(tabId);
+}
+function switchShopperTab(screenId, tabId) {
+  const cur = navStack[navStack.length-1];
+  if (cur === screenId) return;
+  const curEl = getEl(cur);
+  curEl?.classList.remove('active');
+  curEl?.classList.add('prev');
+  const nxt = getEl(screenId);
+  nxt?.classList.remove('hidden','prev');
+  nxt?.classList.add('active');
+  navStack.push(screenId);
+  setShopperTab(tabId);
+}
+
+// ═══════════════════════════════
+// CLOCK
+// ═══════════════════════════════
+function tick() {
+  const now = new Date();
+  getEl('clock').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick, 30000);
+
+// ═══════════════════════════════
+// ACTIVE/AWAY TOGGLE
+// ═══════════════════════════════
+function toggleActive(on) {
+  const dot = getEl('adot');
+  const status = getEl('astatus');
+  const sub = getEl('asub');
+  const hero = getEl('active-hero');
+  if (on) {
+    dot.classList.remove('off');
+    status.textContent = "You're on duty";
+    sub.textContent = 'Couriers can see your door';
+    hero.style.background = 'linear-gradient(135deg,rgba(62,186,110,0.18) 0%,rgba(62,186,110,0.06) 100%)';
+    hero.style.borderColor = 'rgba(62,186,110,0.15)';
+  } else {
+    dot.classList.add('off');
+    status.textContent = "You're away";
+    sub.textContent = 'Toggle to go back on duty';
+    hero.style.background = 'var(--card)';
+    hero.style.borderColor = 'rgba(62,186,110,0.1)';
+  }
+  haptic();
+}
+
+// ═══════════════════════════════
+// HAPTIC FEEDBACK
+// ═══════════════════════════════
+function haptic(pattern=[10]) {
+  navigator.vibrate?.(pattern);
+}
+
+// ═══════════════════════════════
+// PHOTO UPLOAD
+// ═══════════════════════════════
+function uploadPhoto(el, msg) {
+  el.classList.add('done');
+  el.innerHTML = '<span style="font-size:26px;">✅</span><span>' + msg + '</span>';
+  haptic([5,5,5]);
+}
+
+// ═══════════════════════════════
+// NUMPAD
+// ═══════════════════════════════
+let wdVal = '20.00';
+function numpad(k) {
+  if (k === 'del') { wdVal = wdVal.slice(0,-1) || '0'; }
+  else if (k === '.') { if (!wdVal.includes('.')) wdVal += '.'; }
+  else { if (wdVal === '0') wdVal = k; else wdVal += k; }
+  getEl('wd-amt').textContent = '£' + wdVal;
+}
+
+// ═══════════════════════════════
+// STARS
+// ═══════════════════════════════
+function setStars(n) {
+  document.querySelectorAll('#stars .star').forEach((s,i) => s.classList.toggle('lit', i < n));
+}
+function setShopperStars(n) {
+  document.querySelectorAll('#shopper-stars .star').forEach((s,i) => s.classList.toggle('lit', i < n));
+}
+
+// ═══════════════════════════════
+// TIP SELECTION
+// ═══════════════════════════════
+function selTip(el, amt) {
+  document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('sel'));
+  if (amt !== '0') el.classList.add('sel');
+  haptic();
+}
+
+// ═══════════════════════════════
+// KEEPER MAP PIN
+// ═══════════════════════════════
+function selKeeper(name) {
+  ['sarah','james','priya','derek'].forEach(k => {
+    const p = getEl('pin-' + k);
+    if (p) { p.style.background = k === name ? 'var(--g)' : 'var(--card2)'; }
+  });
+  haptic();
+}
+
+// ═══════════════════════════════
+// LINK TRACKING TABS
+// ═══════════════════════════════
+function linkTab(t) {
+  getEl('panel-manual').style.display = t === 'manual' ? 'block' : 'none';
+  getEl('panel-divert').style.display = t === 'divert' ? 'block' : 'none';
+  getEl('tab-manual').classList.toggle('on', t === 'manual');
+  getEl('tab-divert').classList.toggle('on', t === 'divert');
+}
+
+// ═══════════════════════════════
+// REFERRAL
+// ═══════════════════════════════
+function copyRef() {
+  navigator.clipboard?.writeText('https://neary.co/?ref=SARAH-K47X').catch(()=>{});
+  const el = getEl('ref-code');
+  el.textContent = '✓ Copied!';
+  haptic([10,5,10]);
+  setTimeout(() => el.textContent = 'SARAH-K47X', 2000);
+}
+function shareWA() {
+  const msg = encodeURIComponent('Join me on Neary.co — earn money from home holding parcels for neighbours! Use my code SARAH-K47X: https://neary.co/?ref=SARAH-K47X');
+  window.open('https://wa.me/?text=' + msg, '_blank');
+}
+
+// ═══════════════════════════════
+// FAQ ACCORDION
+// ═══════════════════════════════
+function toggleFaq(row, q, a) {
+  const existing = row.nextElementSibling;
+  if (existing && existing.classList.contains('faq-ans')) {
+    existing.remove();
+    row.querySelector('.chevron').textContent = '+';
+  } else {
+    const div = document.createElement('div');
+    div.className = 'faq-ans';
+    div.style.cssText = 'font-size:13px;color:var(--muted);padding:0 16px 14px;line-height:1.65;border-bottom:0.5px solid var(--border);';
+    div.textContent = a;
+    row.after(div);
+    row.querySelector('.chevron').textContent = '−';
+  }
+}
+
+// ═══════════════════════════════
+// PWA INSTALL
+// ═══════════════════════════════
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  getEl('install-banner').style.display = 'flex';
+});
+getEl('install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  getEl('install-banner').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  getEl('install-banner').style.display = 'none';
+});
+
+// ═══════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+// ═══════════════════════════════
+// HANDLE SHORTCUT URLS
+// ═══════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const startScreen = urlParams.get('screen');
+if (startScreen === 'scan') nav('sc-scan');
+if (startScreen === 'wallet') nav('sc-wallet');
+
+// iOS: prevent bounce scroll on root
+document.addEventListener('touchmove', e => {
+  if (!e.target.closest('.scroll')) e.preventDefault();
+}, { passive: false });
+</script>
+</body>
+</html>
