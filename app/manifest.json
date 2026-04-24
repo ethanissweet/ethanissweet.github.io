@@ -2,7 +2,8 @@
   "name": "Neary.co — Keeper App",
   "short_name": "Neary.co",
   "description": "Earn from home. Hold parcels for your neighbours. London's neighbourhood cooperative.",
-  "start_url": "/",
+  "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0C1824",
@@ -28,14 +29,14 @@
       "name": "Scan Parcel",
       "short_name": "Scan",
       "description": "Quickly scan an incoming parcel barcode",
-      "url": "/?screen=scan",
+      "url": "/app/?screen=scan",
       "icons": [{ "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' fill='%233EBA6E'/%3E%3Ctext x='48' y='68' text-anchor='middle' font-size='52' fill='white'%3E📷%3C/text%3E%3C/svg%3E", "sizes": "96x96" }]
     },
     {
       "name": "My Wallet",
       "short_name": "Wallet",
       "description": "Check earnings and withdraw",
-      "url": "/?screen=wallet",
+      "url": "/app/?screen=wallet",
       "icons": [{ "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' fill='%233EBA6E'/%3E%3Ctext x='48' y='68' text-anchor='middle' font-size='52' fill='white'%3E💳%3C/text%3E%3C/svg%3E", "sizes": "96x96" }]
     }
   ]
